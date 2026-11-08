@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Olas UY — pronóstico de olas por playa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06141f; --bg2:#0b2233; --card:#0f2a3d; --card2:#123349; --line:#1d4560;
+  --tx:#e8f4fb; --mut:#8fb3c9; --acc:#38bdf8;
+  --plano:#64748b; --malo:#f97316; --regular:#eab308; --bueno:#22c55e; --muybueno:#2dd4bf; --peligro:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Outfit,system-ui,sans-serif;background:linear-gradient(180deg,var(--bg2),var(--bg) 420px);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:16px 14px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:24px;letter-spacing:-.5px}
+.logo svg{width:30px;height:30px}
+.mode{display:flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px}
+.mode button{border:0;background:transparent;color:var(--mut);font:600 13px Outfit;padding:7px 12px;border-radius:999px;cursor:pointer}
+.mode button.on{background:var(--acc);color:#04202f}
+.banner{font-size:13px;line-height:1.4;padding:10px 12px;border-radius:12px;margin-bottom:12px;border:1px solid}
+.banner.demo{background:#3a2a06;border-color:#7a5a10;color:#fde68a}
+.banner.live{background:#062e22;border-color:#14532d;color:#86efac}
+.time{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:12px}
+.time .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.time .when{font-size:18px;font-weight:700}
+.time .hint{font-size:12px;color:var(--mut)}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{border:1px solid var(--line);background:var(--card2);color:var(--tx);font:500 12.5px Outfit;padding:6px 10px;border-radius:999px;cursor:pointer}
+.chip:active{transform:scale(.97)}
+.best{display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,#0e3b52,#0b2a3c);border:1px solid #1f5c7d;border-radius:16px;padding:12px 14px;margin-bottom:12px;cursor:pointer}
+.best .k{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.8px}
+.best .n{font-size:18px;font-weight:700}
+.best .s{font-size:13px;color:var(--mut)}
+.trophy{font-size:28px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 10px;font-size:13px;color:var(--mut)}
+.toolbar button{background:none;border:0;color:var(--acc);font:600 13px Outfit;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;margin-bottom:10px;overflow:hidden}
+.main{display:grid;grid-template-columns:118px 1fr;gap:12px;padding:12px;cursor:pointer;align-items:center}
+.vis{background:linear-gradient(180deg,#0b3550,#08263a);border-radius:12px;overflow:hidden}
+.vis svg{display:block;width:100%;height:auto}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.name{font-weight:700;font-size:17px;line-height:1.15}
+.zone{font-size:12px;color:var(--mut)}
+.pill{font-size:12px;font-weight:700;padding:4px 9px;border-radius:999px;white-space:nowrap;color:#06141f}
+.big{display:flex;align-items:baseline;gap:8px;margin:6px 0 4px}
+.big b{font-size:30px;font-weight:800;letter-spacing:-1px}
+.big span{font-size:14px;color:var(--mut)}
+.human{font-size:14px;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 12px 12px}
+.st{background:var(--card2);border-radius:10px;padding:7px 8px}
+.st .l{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px}
+.st .v{font-size:15px;font-weight:700;display:flex;align-items:center;gap:4px}
+.st .d{font-size:11.5px;color:var(--mut);line-height:1.2}
+.arrow{width:16px;height:16px;display:inline-block;transition:transform .3s}
+.exp{display:none;padding:0 12px 14px;border-top:1px solid var(--line)}
+.card.open .exp{display:block}
+.exp h4{font-size:13px;color:var(--mut);font-weight:600;margin:12px 0 6px}
+.chart{width:100%;height:auto;display:block;cursor:pointer;touch-action:pan-y}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+.tbl th{color:var(--mut);font-weight:500;text-align:left;padding:5px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:5px 4px;border-bottom:1px solid #16384f;white-space:nowrap}
+.tbl tr.sel td{background:#16405a}
+.tblwrap{overflow-x:auto}
+.expert-only{display:none}
+body.expert .expert-only{display:block}
+body.expert tr .expert-only, body.expert th.expert-only, body.expert td.expert-only{display:table-cell}
+.legend{display:flex;flex-wrap:wrap;gap:8px 12px;font-size:12px;color:var(--mut);margin:16px 2px 6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.foot{font-size:12px;color:var(--mut);line-height:1.5;margin-top:14px}
+.foot a{color:var(--acc)}
+.loading{text-align:center;color:var(--mut);padding:40px 0}
+.swim{font-size:12px;font-weight:600;padding:3px 8px;border-radius:8px;display:inline-block;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 32 32" fill="none"><path d="M2 20c4 0 5-9 12-9 5 0 6 4 3 5-2 .8-4-1-3-2.5" stroke="#38bdf8" stroke-width="2.6" stroke-linecap="round"/><path d="M2 26c3 0 4-2 7-2s4 2 7 2 4-2 7-2 4 2 7 2" stroke="#7dd3fc" stroke-width="2.2" stroke-linecap="round"/></svg>
+      Olas UY
+    </div>
+    <div class="mode">
+      <button id="mSimple" class="on">Simple</button>
+      <button id="mExpert">Experto</button>
+    </div>
+  </header>
+
+  <div id="banner"></div>
+
+  <div class="time">
+    <div class="row"><div class="when" id="when">—</div><div class="hint">Deslizá para ver otra hora</div></div>
+    <input type="range" id="slider" min="0" max="71" value="0">
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div id="best"></div>
+
+  <div class="toolbar">
+    <span id="count"></span>
+    <button id="sortBtn">Ordenar: de oeste a este</button>
+  </div>
+
+  <div id="list"><div class="loading">Cargando el pronóstico…</div></div>
+
+  <div class="legend">
+    <span><i style="background:var(--plano)"></i>Plano</span>
+    <span><i style="background:var(--malo)"></i>Malo</span>
+    <span><i style="background:var(--regular)"></i>Regular</span>
+    <span><i style="background:var(--bueno)"></i>Bueno</span>
+    <span><i style="background:var(--muybueno)"></i>Muy bueno</span>
+    <span><i style="background:var(--peligro)"></i>Peligroso</span>
+  </div>
+  <p class="foot">
+    <b>Cómo leerlo:</b> el muñequito mide 1,70 m, así ves el tamaño de la ola de un vistazo. <b>Terral</b> es viento que sopla de la tierra al mar: ordena las olas y es lo mejor para surfear. <b>De mar</b> es viento que sopla hacia la costa y desarma las olas. Si el <b>período</b> es más largo, la ola viene con más fuerza y más ordenada.<br>
+    El indicador de baño es orientativo: respetá siempre las banderas y a los guardavidas.<br>
+    Datos: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (Marine API y Forecast API).
+  </p>
+</div>
+
+<script>
+// ---------- Playas ----------
+// facing = hacia dónde mira la playa (grados, de dónde llega el mar). Se usa para saber si el viento es terral o de mar.
+const BEACHES = [
+  {id:"pocitos",  name:"Pocitos",            zone:"Montevideo",       lat:-34.93, lon:-56.15, facing:180},
+  {id:"piria",    name:"Piriápolis",          zone:"Maldonado",        lat:-34.89, lon:-55.27, facing:165},
+  {id:"brava",    name:"Playa Brava",         zone:"Punta del Este",   lat:-34.97, lon:-54.93, facing:150},
+  {id:"montoya",  name:"Montoya",             zone:"La Barra",         lat:-34.93, lon:-54.85, facing:160},
+  {id:"jose",     name:"José Ignacio",        zone:"Maldonado",        lat:-34.86, lon:-54.63, facing:165},
+  {id:"aguada",   name:"La Aguada",           zone:"La Paloma",        lat:-34.67, lon:-54.13, facing:125},
+  {id:"pedrera",  name:"La Pedrera",          zone:"Rocha",            lat:-34.60, lon:-54.10, facing:125},
+  {id:"polonio",  name:"Cabo Polonio",        zone:"Rocha",            lat:-34.42, lon:-53.78, facing:150},
+  {id:"diablo",   name:"Punta del Diablo",    zone:"Rocha",            lat:-34.05, lon:-53.52, facing:110},
+  {id:"teresa",   name:"Santa Teresa",        zone:"Rocha",            lat:-33.98, lon:-53.50, facing:115},
+];
+
+const COLORS = {plano:"#64748b", malo:"#f97316", regular:"#eab308", bueno:"#22c55e", muybueno:"#2dd4bf", peligro:"#ef4444"};
+const LABELS = {plano:"Plano", malo:"Malo", regular:"Regular", bueno:"Bueno", muybueno:"Muy bueno", peligro:"Peligroso"};
+const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const CARD = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];
+
+let DATA = null, TIMES = [], idx = 0, expert = false, sortBest = false, LIVE = false;
+const open = new Set();
+
+// ---------- Utilidades ----------
+const card16 = d => d==null ? "—" : CARD[Math.round(((d%360)+360)%360/22.5)%16];
+const fmt = (v,n=1) => v==null||isNaN(v) ? "—" : v.toFixed(n).replace(".",",");
+const angDiff = (a,b) => { let d = Math.abs(a-b)%360; return d>180 ? 360-d : d; };
+function parseT(s){ const [d,t]=s.split("T"); const [y,m,da]=d.split("-").map(Number); const [h,mi]=t.split(":").map(Number); return new Date(y,m-1,da,h,mi); }
+function whenLabel(s){
+  const d = parseT(s), now = new Date();
+  const day0 = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const diff = Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-day0)/864e5);
+  const dn = diff===0?"Hoy":diff===1?"Mañana":DIAS[d.getDay()]+" "+d.getDate();
+  return dn+" · "+String(d.getHours()).padStart(2,"0")+":00";
+}
+function arrowSVG(fromDeg, color="#cfe8f5"){
+  // flecha que apunta hacia donde VA (desde de dónde viene + 180)
+  const r = (fromDeg==null?0:fromDeg)+180;
+  return `<svg class="arrow" viewBox="0 0 16 16" style="transform:rotate(${r}deg)"><path d="M8 1 L13 12 L8 9.5 L3 12 Z" fill="${color}"/></svg>`;
+}
+
+// ---------- Interpretación ----------
+function humanSize(h){
+  if(h==null) return "—";
+  if(h<0.3) return "Plano";
+  if(h<0.5) return "A la rodilla";
+  if(h<0.9) return "A la cintura";
+  if(h<1.3) return "Al pecho";
+  if(h<1.8) return "A la cabeza";
+  if(h<2.5) return "Por encima de la cabeza";
+  return "Doble cabeza o más";
+}
+function windType(b, wd, ws){
+  if(ws==null) return {k:"—", txt:"—"};
+  if(ws<8) return {k:"calmo", txt:"Calmo"};
+  const off = (b.facing+180)%360;
+  const d = angDiff(wd, off);
+  if(d<=50) return {k:"terral", txt:"Terral"};
+  if(d>=130) return {k:"mar", txt:"De mar"};
+  return {k:"cruzado", txt:"Cruzado"};
+}
+function periodTxt(p){
+  if(p==null) return "—";
+  if(p<6) return "Corta, desordenada";
+  if(p<9) return "Normal";
+  if(p<12) return "Buena, ordenada";
+  return "Mar de fondo, con fuerza";
+}
+function evaluate(b, x){
+  const h=x.h, p=x.p, ws=x.ws;
+  const w = windType(b, x.wd, ws);
+  let s;
+  if(h==null) return {score:0, cls:"plano", w};
+  if(h<0.3) s=0; else if(h<0.5) s=2; else if(h<0.8) s=4; else if(h<1.2) s=6; else if(h<2) s=8; else if(h<2.8) s=7; else if(h<3.5) s=5; else s=3;
+  s *= p==null?1 : p<6?0.7 : p<8?0.85 : p<11?1 : 1.1;
+  if(w.k==="calmo") s+=1;
+  else if(w.k==="terral" && ws<35) s+=1.2;
+  else if(w.k==="cruzado" && ws>15) s-= ws>25?1.5:0.6;
+  else if(w.k==="mar") s-= ws>25?3 : ws>12?1.5 : 0.5;
+  s=Math.max(0,Math.min(10,s));
+  let cls;
+  if(h>=3 || (ws!=null&&ws>=50)) cls="peligro";
+  else if(h<0.3) cls="plano";
+  else if(s>=7) cls="muybueno";
+  else if(s>=5) cls="bueno";
+  else if(s>=3) cls="regular";
+  else cls="malo";
+  let swim;
+  if(h<0.7 && (ws==null||ws<25)) swim={t:"Baño: tranquilo", c:"#14532d", f:"#86efac"};
+  else if(h<1.4 && (ws==null||ws<40)) swim={t:"Baño: con precaución", c:"#4a3a06", f:"#fde68a"};
+  else swim={t:"Baño: peligroso", c:"#4c0f0f", f:"#fca5a5"};
+  return {score:s, cls, w, swim};
+}
+
+// ---------- Dibujo de la ola con persona para escala ----------
+function waveSVG(h, color){
+  const base=62, ppm=22; // píxeles por metro (persona 1,70 m ≈ 37 px)
+  const H = Math.max(2, Math.min((h||0)*ppm, 56));
+  const crestX=70;
+  const path = `M0 ${base} C 25 ${base} 45 ${base-H} ${crestX} ${base-H}
+    C ${crestX+16} ${base-H} ${crestX+22} ${base-H*0.72} ${crestX+15} ${base-H*0.55}
+    C ${crestX+10} ${base-H*0.45} ${crestX+4} ${base-H*0.55} ${crestX+8} ${base-H*0.62}
+    C ${crestX+26} ${base-H*0.5} ${crestX+38} ${base} 120 ${base} L120 76 L0 76 Z`;
+  const ph=37, px=18;
+  return `<svg viewBox="0 0 120 76">
+    <rect x="0" y="${base}" width="120" height="14" fill="#0a2c43"/>
+    <path d="${path}" fill="${color}" opacity=".92"/>
+    <path d="M0 ${base+5} q10 -3 20 0 t20 0 t20 0 t20 0 t20 0 t20 0" stroke="#ffffff" stroke-opacity=".25" fill="none" stroke-width="1.2"/>
+    <g stroke="#f8fafc" stroke-width="2.2" stroke-linecap="round" fill="none">
+      <circle cx="${px}" cy="${base-ph+4}" r="3.6" fill="#f8fafc" stroke="none"/>
+      <line x1="${px}" y1="${base-ph+8}" x2="${px}" y2="${base-ph+22}"/>
+      <line x1="${px}" y1="${base-ph+22}" x2="${px-4}" y2="${base}"/>
+      <line x1="${px}" y1="${base-ph+22}" x2="${px+4}" y2="${base}"/>
+      <line x1="${px}" y1="${base-ph+12}" x2="${px-6}" y2="${base-ph+19}"/>
+      <line x1="${px}" y1="${base-ph+12}" x2="${px+6}" y2="${base-ph+19}"/>
+    </g>
+  </svg>`;
+}
+
+// ---------- Gráfico 72 h ----------
+function chartSVG(b){
+  const W=720, H=170, top=14, bot=40, n=TIMES.length, bw=W/n;
+  const maxH = Math.max(1.5, ...b.hours.map(x=>x.h||0))*1.1;
+  let g = "";
+  // separadores de día
+  TIMES.forEach((t,i)=>{ const d=parseT(t); if(d.getHours()===0 && i>0){ g+=`<line x1="${i*bw}" y1="0" x2="${i*bw}" y2="${H}" stroke="#2a5672" stroke-dasharray="3 3"/>`; }
+    if(d.getHours()===12){ const dn = whenLabel(t).split(" · ")[0]; g+=`<text x="${i*bw}" y="11" fill="#8fb3c9" font-size="11" text-anchor="middle" font-family="Outfit">${dn}</text>`; } });
+  // noche
+  TIMES.forEach((t,i)=>{ const hh=parseT(t).getHours(); if(hh<6||hh>=20) g+=`<rect x="${i*bw}" y="${top}" width="${bw}" height="${H-top-bot}" fill="#000" opacity=".18"/>`; });
+  b.hours.forEach((x,i)=>{
+    const e=evaluate(b,x); const bh=((x.h||0)/maxH)*(H-top-bot);
+    g+=`<rect x="${i*bw+0.6}" y="${H-bot-bh}" width="${bw-1.2}" height="${bh}" rx="1.5" fill="${COLORS[e.cls]}" opacity="${i===idx?1:.75}"/>`;
+  });
+  // flechas de viento cada 3 h
+  for(let i=0;i<n;i+=3){ const x=b.hours[i]; if(x.wd==null) continue; const cx=i*bw+bw*1.5, cy=H-22;
+    const w=windType(b,x.wd,x.ws); const col = w.k==="terral"?"#86efac":w.k==="mar"?"#fca5a5":"#cfe8f5";
+    g+=`<g transform="translate(${cx} ${cy}) rotate(${x.wd+180})"><path d="M0 -7 L4.5 5 L0 2.6 L-4.5 5 Z" fill="${col}"/></g>`;
+    if(i%6===0) g+=`<text x="${cx}" y="${H-3}" fill="#8fb3c9" font-size="9.5" text-anchor="middle" font-family="Outfit">${Math.round(x.ws)}</text>`;
+  }
+  // marcador seleccionado
+  g+=`<rect x="${idx*bw}" y="${top-2}" width="${bw}" height="${H-top-bot+4}" fill="none" stroke="#fff" stroke-width="1.5" rx="2"/>`;
+  g+=`<text x="4" y="${top+12}" fill="#cfe8f5" font-size="11" font-family="Outfit">${fmt(maxH/1.1,1)} m</text>`;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" data-id="${b.id}">${g}</svg>`;
+}
+
+// ---------- Render ----------
+function renderTime(){
+  document.getElementById("when").textContent = TIMES.length ? whenLabel(TIMES[idx]) : "—";
+  document.getElementById("slider").value = idx;
+}
+function renderChips(){
+  const chips = [{t:"Ahora", i:0}];
+  for(let k=0;k<TIMES.length;k++){ const d=parseT(TIMES[k]); const dn=whenLabel(TIMES[k]).split(" · ")[0];
+    if(k>0 && (d.getHours()===7 || d.getHours()===17)) chips.push({t:`${dn} ${d.getHours()===7?"temprano":"tarde"}`, i:k}); }
+  document.getElementById("chips").innerHTML = chips.slice(0,6).map(c=>`<button class="chip" data-i="${c.i}">${c.t}</button>`).join("");
+}
+function render(){
+  if(!DATA) return;
+  renderTime();
+  const items = DATA.map(b=>({b, x:b.hours[idx], e:evaluate(b,b.hours[idx])}));
+  // mejor playa
+  const best = [...items].filter(o=>o.e.cls!=="peligro").sort((a,c)=>c.e.score-a.e.score)[0];
+  const bestEl = document.getElementById("best");
+  if(best && best.e.score>=3){
+    bestEl.innerHTML = `<div class="best" data-go="${best.b.id}"><div class="trophy">🏄</div><div><div class="k">Mejor playa para surfear a esta hora</div><div class="n">${best.b.name} <span style="color:${COLORS[best.e.cls]}">· ${LABELS[best.e.cls]}</span></div><div class="s">${fmt(best.x.h)} m (${humanSize(best.x.h).toLowerCase()}) · ${Math.round(best.x.p||0)} s · viento ${best.e.w.txt.toLowerCase()}</div></div></div>`;
+  } else bestEl.innerHTML = `<div class="best"><div class="trophy">😴</div><div><div class="k">A esta hora</div><div class="n">Poca ola en toda la costa</div><div class="s">Probá con otro día o mirá los gráficos de cada playa.</div></div></div>`;
+
+  const list = sortBest ? [...items].sort((a,c)=>c.e.score-a.e.score) : items;
+  document.getElementById("count").textContent = `${items.length} playas`;
+  document.getElementById("list").innerHTML = list.map(({b,x,e})=>{
+    const col = COLORS[e.cls];
+    const wcol = e.w.k==="terral"?"#86efac":e.w.k==="mar"?"#fca5a5":"#cfe8f5";
+    const stars = "★".repeat(Math.round(e.score/2))+"☆".repeat(5-Math.round(e.score/2));
+    const rows = b.hours.map((y,i)=>{ if(i%3!==0 && i!==idx) return ""; const ee=evaluate(b,y);
+      return `<tr class="${i===idx?"sel":""}"><td>${whenLabel(TIMES[i]).replace("Mañana","Mañ.")}</td><td><b style="color:${COLORS[ee.cls]}">${fmt(y.h)}</b></td><td>${fmt(y.p,0)} s</td><td>${card16(y.d)}</td>
+      <td class="expert-only">${fmt(y.sh)} m · ${fmt(y.sp,0)} s · ${card16(y.sd)}</td><td class="expert-only">${fmt(y.wh)} m</td>
+      <td>${Math.round(y.ws??0)} ${card16(y.wd)}</td><td class="expert-only">${Math.round(y.wg??0)}</td></tr>`; }).join("");
+    return `<div class="card ${open.has(b.id)?"open":""}" id="c-${b.id}">
+      <div class="main" data-id="${b.id}">
+        <div class="vis">${waveSVG(x.h,col)}</div>
+        <div>
+          <div class="top"><div><div class="name">${b.name}</div><div class="zone">${b.zone}</div></div>
+            <span class="pill" style="background:${col}">${LABELS[e.cls]}</span></div>
+          <div class="big"><b>${fmt(x.h)} m</b><span class="human">${humanSize(x.h)}</span></div>
+          <span class="swim" style="background:${e.swim.c};color:${e.swim.f}">${e.swim.t}</span>
+          <div class="expert-only" style="font-size:12.5px;color:var(--mut);margin-top:5px">Surf: <span style="color:#fde68a;letter-spacing:1px">${stars}</span> ${fmt(e.score,1)}/10</div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="st"><div class="l">Período</div><div class="v">${fmt(x.p,0)} s</div><div class="d">${periodTxt(x.p)}</div></div>
+        <div class="st"><div class="l">Viento</div><div class="v">${arrowSVG(x.wd,wcol)}${Math.round(x.ws??0)}<small style="font-size:11px;font-weight:500">km/h</small></div><div class="d" style="color:${wcol}">${e.w.txt}${x.wd!=null?" · del "+card16(x.wd):""}</div></div>
+        <div class="st"><div class="l">Ola viene del</div><div class="v">${arrowSVG(x.d)}${card16(x.d)}</div><div class="d">${x.sst!=null?"Agua "+fmt(x.sst,0)+" °C":"&nbsp;"}</div></div>
+      </div>
+      <div class="exp">
+        <div class="expert-only">
+          <h4>Detalle técnico</h4>
+          <div class="stats" style="padding:0">
+            <div class="st"><div class="l">Mar de fondo</div><div class="v">${fmt(x.sh)} m</div><div class="d">${fmt(x.sp,0)} s · del ${card16(x.sd)}</div></div>
+            <div class="st"><div class="l">Mar de viento</div><div class="v">${fmt(x.wh)} m</div><div class="d">${fmt(x.wp,0)} s</div></div>
+            <div class="st"><div class="l">Ráfagas</div><div class="v">${Math.round(x.wg??0)}<small style="font-size:11px;font-weight:500">km/h</small></div><div class="d">Dir. ola ${x.d!=null?Math.round(x.d)+"°":"—"}</div></div>
+          </div>
+        </div>
+        <h4>Próximas 72 horas · tocá una barra para ver esa hora</h4>
+        ${chartSVG(b)}
+        <div style="font-size:11.5px;color:var(--mut);margin-top:4px">Barras = altura de ola · Flechas = viento (verde: terral, rojo: de mar) · números = km/h · zona oscura = noche</div>
+        <h4>Hora por hora</h4>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Hora</th><th>Ola m</th><th>Per.</th><th>Dir.</th><th class="expert-only">Fondo</th><th class="expert-only">Viento-mar</th><th>Viento km/h</th><th class="expert-only">Ráf.</th></tr></thead><tbody>${rows}</tbody></table></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ---------- Datos ----------
+const HOURLY_M = "wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,wind_wave_height,wind_wave_period,sea_surface_temperature";
+const HOURLY_W = "wind_speed_10m,wind_direction_10m,wind_gusts_10m";
+async function getJSON(url){
+  const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), 9000);
+  try{ const r = await fetch(url,{signal:ctl.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); }
+  finally{ clearTimeout(to); }
+}
+async function loadLive(){
+  const lat = BEACHES.map(b=>b.lat).join(","), lon = BEACHES.map(b=>b.lon).join(",");
+  const q = `latitude=${lat}&longitude=${lon}&timezone=America%2FMontevideo&forecast_days=4`;
+  const [m,w] = await Promise.all([
+    getJSON(`https://marine-api.open-meteo.com/v1/marine?${q}&hourly=${HOURLY_M}`),
+    getJSON(`https://api.open-meteo.com/v1/forecast?${q}&hourly=${HOURLY_W}`)
+  ]);
+  const M = Array.isArray(m)?m:[m], Wd = Array.isArray(w)?w:[w];
+  const allT = M[0].hourly.time;
+  // empezar en la hora actual
+  const now = new Date(); let start = allT.findIndex(t=>parseT(t)>=new Date(now.getFullYear(),now.getMonth(),now.getDate(),now.getHours()));
+  if(start<0) start=0;
+  TIMES = allT.slice(start, start+72);
+  return BEACHES.map((b,k)=>{
+    const mh=M[k].hourly, wh=Wd[k].hourly;
+    const hours = TIMES.map((t,j)=>{ const i=start+j; const wi = wh.time.indexOf(t);
+      return {h:mh.wave_height[i], d:mh.wave_direction[i], p:mh.wave_period[i], sh:mh.swell_wave_height[i], sd:mh.swell_wave_direction[i], sp:mh.swell_wave_period[i],
+        wh:mh.wind_wave_height[i], wp:mh.wind_wave_period[i], sst:mh.sea_surface_temperature?mh.sea_surface_temperature[i]:null,
+        ws: wi>=0?wh.wind_speed_10m[wi]:null, wd: wi>=0?wh.wind_direction_10m[wi]:null, wg: wi>=0?wh.wind_gusts_10m[wi]:null}; });
+    return {...b, hours};
+  });
+}
+function loadDemo(){
+  // Datos SINTÉTICOS solo para mostrar cómo se ve la herramienta.
+  const now = new Date(); now.setMinutes(0,0,0);
+  TIMES = Array.from({length:72},(_,i)=>{ const d=new Date(now.getTime()+i*3600e3);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}T${String(d.getHours()).padStart(2,"0")}:00`; });
+  const factor = {pocitos:.25, piria:.45, brava:1, montoya:.95, jose:.9, aguada:1.05, pedrera:1.15, polonio:1.1, diablo:1.2, teresa:1.1};
+  return BEACHES.map((b,k)=>({...b, hours:TIMES.map((t,i)=>{
+    const sw = 1.0 + 0.7*Math.sin(i/14) + 0.25*Math.sin(i/5+k);
+    const h = Math.max(0.1, sw*factor[b.id]);
+    const wd = (20 + i*4 + k*3)%360, ws = 8 + 14*Math.abs(Math.sin(i/9+0.4)) + (i%24>13&&i%24<19?8:0);
+    return {h, d:140+20*Math.sin(i/20), p:7+4*Math.sin(i/18)+1.5, sh:h*0.7, sd:150, sp:9+3*Math.sin(i/18), wh:h*0.45, wp:4.5, sst:17.5,
+      ws, wd, wg: ws*1.45};
+  })}));
+}
+async function init(){
+  const banner = document.getElementById("banner");
+  try{
+    DATA = await loadLive(); LIVE = true;
+    banner.innerHTML = `<div class="banner live">Pronóstico en vivo de Open-Meteo · actualizado ${new Date().toLocaleTimeString("es-UY",{hour:"2-digit",minute:"2-digit"})}</div>`;
+  }catch(e){
+    DATA = loadDemo(); LIVE = false;
+    banner.innerHTML = `<div class="banner demo"><b>Vista previa con datos de EJEMPLO (no reales).</b> Este visor no permite conexiones a otras webs. Para ver el pronóstico real, abrí este mismo archivo en el navegador o subilo a cualquier hosting y carga los datos de Open-Meteo solo.</div>`;
+  }
+  idx = 0; renderChips(); render();
+}
+
+// ---------- Eventos ----------
+document.getElementById("slider").addEventListener("input", e=>{ idx=+e.target.value; render(); });
+document.getElementById("chips").addEventListener("click", e=>{ const c=e.target.closest(".chip"); if(c){ idx=+c.dataset.i; render(); } });
+document.getElementById("list").addEventListener("click", e=>{
+  const ch = e.target.closest(".chart");
+  if(ch){ const r=ch.getBoundingClientRect(); const i=Math.floor((e.clientX-r.left)/r.width*TIMES.length); idx=Math.max(0,Math.min(TIMES.length-1,i)); render(); return; }
+  const m = e.target.closest(".main"); if(m){ const id=m.dataset.id; open.has(id)?open.delete(id):open.add(id); render(); }
+});
+document.getElementById("best").addEventListener("click", e=>{ const b=e.target.closest("[data-go]"); if(!b) return; const id=b.dataset.go; open.add(id); render(); document.getElementById("c-"+id)?.scrollIntoView({behavior:"smooth",block:"start"}); });
+document.getElementById("sortBtn").addEventListener("click", e=>{ sortBest=!sortBest; e.target.textContent = sortBest?"Ordenar: mejores primero":"Ordenar: de oeste a este"; render(); });
+function setMode(x){ expert=x; document.body.classList.toggle("expert",x); document.getElementById("mExpert").classList.toggle("on",x); document.getElementById("mSimple").classList.toggle("on",!x); try{localStorage.setItem("olasuy-mode",x?"1":"0")}catch(e){} }
+document.getElementById("mSimple").onclick=()=>setMode(false);
+document.getElementById("mExpert").onclick=()=>setMode(true);
+try{ if(localStorage.getItem("olasuy-mode")==="1") setMode(true); }catch(e){}
+init();
+</script>
+</body>
+</html>
