@@ -174,6 +174,10 @@ body.expert th.expert-only,body.expert td.expert-only{display:table-cell}
 // lat/lon: punto en el mar para el pronóstico · mlat/mlon: marcador en el mapa · facing: hacia dónde mira la playa
 const BEACHES = [
   {id:"pocitos", name:"Pocitos",          zone:"Montevideo",     lat:-34.93,lon:-56.15, mlat:-34.912,mlon:-56.150, facing:180},
+  {id:"solymar", name:"Solymar",          zone:"Ciudad de la Costa", lat:-34.87,lon:-55.96, mlat:-34.840,mlon:-55.965, facing:165},
+  {id:"pinar",   name:"El Pinar",         zone:"Ciudad de la Costa", lat:-34.83,lon:-55.89, mlat:-34.803,mlon:-55.895, facing:165},
+  {id:"bello",   name:"Bello Horizonte",  zone:"Canelones",      lat:-34.81,lon:-55.39, mlat:-34.778,mlon:-55.390, facing:175},
+  {id:"cuchilla",name:"Cuchilla Alta",    zone:"Canelones",      lat:-34.82,lon:-55.32, mlat:-34.797,mlon:-55.322, facing:175},
   {id:"piria",   name:"Piriápolis",       zone:"Maldonado",      lat:-34.89,lon:-55.27, mlat:-34.866,mlon:-55.275, facing:165},
   {id:"brava",   name:"Playa Brava",      zone:"Punta del Este", lat:-34.97,lon:-54.93, mlat:-34.953,mlon:-54.933, facing:150},
   {id:"montoya", name:"Montoya",          zone:"La Barra",       lat:-34.93,lon:-54.85, mlat:-34.918,mlon:-54.862, facing:160},
@@ -530,7 +534,7 @@ async function loadLive(){
 function loadDemo(){
   const now=new Date();now.setMinutes(0,0,0);
   TIMES=Array.from({length:72},(_,i)=>{const d=new Date(now.getTime()+i*3600e3);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}T${String(d.getHours()).padStart(2,"0")}:00`;});
-  const f={pocitos:.25,piria:.45,brava:1,montoya:.95,jose:.9,aguada:1.05,pedrera:1.15,polonio:1.1,diablo:1.2,teresa:1.1};
+  const f={pocitos:.25,solymar:.3,pinar:.32,bello:.4,cuchilla:.42,piria:.45,brava:1,montoya:.95,jose:.9,aguada:1.05,pedrera:1.15,polonio:1.1,diablo:1.2,teresa:1.1};
   return BEACHES.map((b,k)=>({...b,hours:TIMES.map((t,i)=>{const sw=1.1+0.7*Math.sin(i/14)+0.25*Math.sin(i/5+k);const h=Math.max(0.1,sw*f[b.id]);
     const wd=(330+i*5+k*3)%360,ws=8+14*Math.abs(Math.sin(i/9+0.4))+(i%24>13&&i%24<19?8:0);
     return{h,d:140+20*Math.sin(i/20),p:8.5+4*Math.sin(i/18),sh:h*0.7,sd:150,sp:9.5+3*Math.sin(i/18),wh:h*0.45,wp:4.5,sst:17.5,ws,wd,wg:ws*1.45};})}));
