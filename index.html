@@ -51,7 +51,7 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 .name{font-weight:800;font-size:22px;line-height:1.1}
 .zone{font-size:13px;color:var(--mut)}
 .pill{font-size:13px;font-weight:700;padding:5px 10px;border-radius:999px;white-space:nowrap;color:#06141f}
-#hero{display:block;width:100%;height:230px}
+#hero{display:block;width:100%;height:220px}
 .wtype{padding:10px 14px 4px}
 .wtype .t{font-size:17px;font-weight:700}
 .wtype .d{font-size:13.5px;color:var(--mut);line-height:1.35;margin-top:2px}
@@ -213,7 +213,7 @@ const beach=()=>DATA.find(b=>b.id===selId)||DATA[0];
 function humanSize(h){if(h==null)return"—";if(h<0.3)return"Plano";if(h<0.5)return"A la rodilla";if(h<0.9)return"A la cintura";if(h<1.3)return"Al pecho";if(h<1.8)return"A la cabeza";if(h<2.5)return"Por encima de la cabeza";return"Doble cabeza o más";}
 function windType(b,wd,ws){if(ws==null)return{k:"—",txt:"—"};if(ws<8)return{k:"calmo",txt:"Calmo"};
   const d=angDiff(wd,(b.facing+180)%360);if(d<=50)return{k:"terral",txt:"Terral"};if(d>=130)return{k:"mar",txt:"De mar"};return{k:"cruzado",txt:"Cruzado"};}
-function periodTxt(p){if(p==null)return"—";if(p<6)return"Corta, desordenada";if(p<9)return"Normal";if(p<12)return"Buena, ordenada";return"Mar de fondo, con fuerza";}
+function periodTxt(p){if(p==null)return"—";if(p<7)return"Corta, desordenada";if(p<9)return"Normal";if(p<12)return"Buena, ordenada";return"Mar de fondo, con fuerza";}
 function evaluate(b,x){
   const h=x.h,p=x.p,ws=x.ws;const w=windType(b,x.wd,ws);
   if(h==null)return{score:0,cls:"plano",w,swim:{t:"—",c:"#333",f:"#fff"}};
@@ -230,7 +230,7 @@ function waveType(b,x,e){
   const h=x.h||0,p=x.p||0,ws=x.ws||0,w=e.w;
   if(h<0.3)return{k:"plano",lip:0,t:"Mar plano",d:"Casi sin olas. Ideal para bañarse, nadar o hacer paddle."};
   if(h>=2.8)return{k:"bomba",lip:1.2,t:"Olas grandes y pesadas",d:"Rompen de golpe y con mucha fuerza, cerrando toda la línea. Solo para surfistas expertos."};
-  if((w.k==="mar"&&ws>=18)||p<6.5)return{k:"picado",lip:0,t:"Mar picado",d:"El viento de mar y el período corto desarman las olas: rompen desordenadas, con mucha espuma y sin forma."};
+  if((w.k==="mar"&&ws>=15)||p<5)return{k:"picado",lip:0,t:"Mar picado",d:"El viento de mar y el período corto desarman las olas: rompen desordenadas, con mucha espuma y sin forma."};
   if((w.k==="terral"||w.k==="calmo")&&p>=9&&h>=0.9)return{k:"tubo",lip:1,t:"Ola hueca, con tubo",d:"Con viento terral y buen período la ola se para, y la cresta se tira hacia adelante formando un tubo. Abre hacia los costados."};
   if(w.k!=="mar"&&p>=7.5&&h>=0.6)return{k:"formada",lip:0.55,t:"Ola formada",d:"Ola limpia que rompe ordenada desde un pico y abre hacia los costados. Buena para surfear."};
   return{k:"espuma",lip:0,t:"Ola de espuma",d:"Rompe suave, derramando espuma desde arriba. Ideal para aprender o para bodyboard."};
@@ -248,86 +248,76 @@ function drawPerson(c,x,yF,hp,label){
   if(label){c.font="600 11px Outfit";c.fillStyle="rgba(255,255,255,.85)";c.textAlign="left";c.fillText(label,x+hp*0.2,yF-hp*0.9);}
   c.restore();
 }
+const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 function drawHero(ts,dt){
   if(!heroCfg||!heroW)return;
   const c=hc,W=heroW,H=heroH,cfg=heroCfg,k=cfg.type.k,lip=cfg.type.lip,T=ts/1000;
-  const yS=H*0.8,ppm=H*0.17;
+  const yS=H*0.74,ppm=H*0.16;
   // cielo
-  let g=c.createLinearGradient(0,0,0,yS);g.addColorStop(0,"#0b2f47");g.addColorStop(1,"#1a5d80");c.fillStyle=g;c.fillRect(0,0,W,H);
-  const A=Math.max(3,Math.min(cfg.h,3.8)*ppm);
-  const C=clamp(cfg.p*0.55,3.2,7.5),cyc=Math.floor(T/C),tau=(T/C)%1;
-  let cx,a,wf,wb=W*0.24;
-  if(k==="plano"){cx=-9999;a=0;wf=1;}else{
-    const e1=Math.min(tau/0.55,1),ease=1-Math.pow(1-e1,2);
-    cx=W*(-0.12+0.66*ease)+(tau>0.55?W*0.1*(tau-0.55)/0.45:0);
-    a=A*(0.45+0.55*ease);if(tau>0.72)a*=1-0.78*((tau-0.72)/0.28);
-    const steep=ease*(lip>0?1:0.55);wf=Math.max(W*0.045,W*0.24*(1-0.8*steep));
-  }
-  const chop=k==="picado"?2.5+A*0.09:k==="plano"?1.2:(cfg.wk==="mar"?1.6:cfg.wk==="terral"?0.5:0.9);
-  const flat=k==="plano"?Math.max(2,A*0.5):0;
-  const surf=x=>{let y=yS+chop*(Math.sin(x*0.09+T*3.1)*0.6+Math.sin(x*0.23-T*4.4)*0.4);
-    if(k==="picado")y+=chop*0.8*Math.sin(x*0.05-T*2+cyc);
-    if(flat)y-=flat*Math.sin(x*0.025-T*1.3);
-    if(a>0){const dx=x-cx;y-=a*Math.exp(-Math.pow(dx/(dx<0?wb:wf),2));}return y;};
-  // persona (detrás del agua: el agua le tapa las piernas)
-  const xP=W*0.8,hp=ppm*1.7,yF=yS+ppm*0.5;
-  drawPerson(c,xP,yF,hp,"1,70 m");
+  let g=c.createLinearGradient(0,0,0,yS);g.addColorStop(0,"#0c3047");g.addColorStop(1,"#2b7aa0");c.fillStyle=g;c.fillRect(0,0,W,H);
+  const A=Math.min(cfg.h,3.8)*ppm;
+  const C=clamp(cfg.p*0.6,4,8),cyc=Math.floor(T/C),tau=(T/C)%1;
+  // ola principal: avanza a velocidad constante, crece, rompe y se apaga
+  const cx=W*(-0.22+0.98*tau);
+  let a=A*(0.45+0.55*smooth(0,0.55,tau));
+  a*=1-0.7*smooth(0.66,0.9,tau)-0.3*smooth(0.9,1,tau);
+  const steep=smooth(0.1,0.58,tau)*(lip>0?0.85:0.5);
+  const wb=W*0.26,wf=W*0.22*(1-steep);
+  const bumps=k==="picado"?[0.35,0.62]:[];
+  const surf=x=>{let y=yS+1.2*Math.sin(x*0.025-T*1.6);
+    if(k==="plano")return y-Math.max(1.5,A*0.5)*Math.sin(x*0.022-T*1.2);
+    const dx=x-cx;y-=a*Math.exp(-Math.pow(dx/(dx<0?wb:wf),2));
+    for(const o of bumps){const bx=((o+tau*0.8)%1)*W*1.2-W*0.1;y-=A*0.22*Math.exp(-Math.pow((x-bx)/(W*0.07),2));}
+    return y;};
+  const foamBand=(x0,x1,th,alpha)=>{if(x1-x0<2)return;c.fillStyle=`rgba(255,255,255,${alpha})`;c.beginPath();
+    for(let x=x0;x<=x1;x+=2){const f=Math.sin(Math.PI*(x-x0)/(x1-x0));c.lineTo(x,surf(x)-th*f);}
+    for(let x=x1;x>=x0;x-=2){const f=Math.sin(Math.PI*(x-x0)/(x1-x0));c.lineTo(x,surf(x)+th*0.35*f);}c.closePath();c.fill();};
   // agua
-  g=c.createLinearGradient(0,yS-A,0,H);g.addColorStop(0,"#2aa3cf");g.addColorStop(0.35,"#13719a");g.addColorStop(1,"#08324d");
+  g=c.createLinearGradient(0,yS-A,0,H);g.addColorStop(0,"#35b4dd");g.addColorStop(0.4,"#13719a");g.addColorStop(1,"#08324d");
   c.fillStyle=g;c.beginPath();c.moveTo(0,H);for(let x=0;x<=W;x+=2)c.lineTo(x,surf(x));c.lineTo(W,H);c.closePath();c.fill();
-  // brillo en la cresta
-  c.strokeStyle="rgba(255,255,255,.25)";c.lineWidth=1.2;c.beginPath();for(let x=0;x<=W;x+=3){const y=surf(x);x?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();
-  // labio y tubo
-  let xe=cx,ye=yS;
-  if(lip>0&&tau>0.48&&a>0){
-    const bp=clamp((tau-0.48)/0.24,0,1);
-    const x0=cx+wf*0.12,y0=surf(x0);
-    const L=a*1.25*lip*Math.pow(bp,0.8);xe=x0+L;ye=yS-a*(1-0.9*bp);
-    const qx=x0+L*0.95,qy=y0-a*0.14*lip;
-    // interior del tubo
-    if(bp>0.15){c.fillStyle="rgba(4,32,48,.88)";c.beginPath();c.moveTo(x0,y0);c.quadraticCurveTo(qx,qy,xe,ye);
-      c.lineTo(xe,Math.max(ye,surf(xe)));for(let x=xe;x>=x0;x-=2)c.lineTo(x,surf(x));c.closePath();c.fill();}
-    c.strokeStyle="#1f97c4";c.lineWidth=Math.max(2,a*0.14*(1-0.45*bp));c.lineCap="round";
-    c.beginPath();c.moveTo(x0-wf*0.2,surf(x0-wf*0.2));c.lineTo(x0,y0);c.quadraticCurveTo(qx,qy,xe,ye);c.stroke();
-    c.strokeStyle="rgba(255,255,255,.9)";c.lineWidth=1.6;c.beginPath();c.moveTo(x0,y0-1);c.quadraticCurveTo(qx,qy-2,xe,ye);c.stroke();
-    if(bp>=1&&heroSplashed!==cyc){heroSplashed=cyc;const n=Math.round(18+lip*a*0.9);
-      for(let i=0;i<n;i++)heroParts.push({x:xe+(Math.random()-0.5)*a*0.4,y:yS-a*0.15,vx:(Math.random()*1.4-0.2)*a*1.2,vy:-(0.6+Math.random())*a*2.2,life:1,g:a*5,r:1+Math.random()*2.2});}
-  }
-  // espuma
-  if(k!=="plano"&&a>0){
-    const seed=cyc*7.13;
-    if(lip===0&&tau>0.4){const fr=clamp((tau-0.4)/0.3,0,1);
-      c.fillStyle="rgba(255,255,255,.85)";for(let x=cx-wf*0.3;x<cx+wf*1.4*fr;x+=3){const y=surf(x);const r=1.5+a*0.08*(0.6+0.4*Math.sin(x*0.4+seed));c.beginPath();c.arc(x,y+r*0.4,r,0,7);c.fill();}}
-    if(tau>(lip>0?0.68:0.62)){const rr=clamp((tau-0.68)/0.32,0,1);
-      const x0=cx-W*0.05,x1=Math.min(W*0.93,(lip>0?xe:cx+wf)+W*0.45*rr);
-      c.fillStyle=`rgba(255,255,255,${0.85-0.4*rr})`;
-      for(let x=x0;x<x1;x+=3){const y=surf(x);const r=(2+a*0.13*(0.5+0.5*Math.sin(x*0.31+seed)))*(1-0.5*rr);c.beginPath();c.arc(x,y,r,0,7);c.fill();}}
-    // chop de viento de mar: crestitas blancas
-    if(k==="picado"){c.fillStyle="rgba(255,255,255,.7)";for(let i=0;i<14;i++){const x=((i*97+T*40*(1+i%3))%W);if(Math.sin(i*3.3+T*1.7)>0.3){c.beginPath();c.arc(x,surf(x),1.6+chop*0.25,0,7);c.fill();}}}
-  }
-  // spray por viento
-  if(k!=="plano"&&a>0&&cfg.ws>10&&tau>0.25&&tau<0.74){
-    const n=cfg.ws>25?3:1;
-    for(let i=0;i<n;i++){
-      if(cfg.wk==="terral")heroParts.push({x:cx+(Math.random()-0.3)*wf,y:yS-a+Math.random()*3,vx:-(25+cfg.ws*3)*(0.6+Math.random()*0.6),vy:-(10+Math.random()*25),life:0.8,g:20,r:0.8+Math.random()*1.2});
-      else if(cfg.wk==="mar")heroParts.push({x:cx,y:yS-a,vx:(20+cfg.ws*2)*(0.5+Math.random()),vy:-(5+Math.random()*10),life:0.6,g:40,r:0.8+Math.random()});
+  c.strokeStyle="rgba(255,255,255,.3)";c.lineWidth=1.2;c.beginPath();for(let x=0;x<=W;x+=2){const y=surf(x);x?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();
+  // rompiente
+  if(k!=="plano"){
+    let xe=cx+wf;
+    if(lip>0){
+      const bp=smooth(0.5,0.7,tau);
+      if(bp>0&&tau<0.75){
+        const x0=cx+wf*0.1,y0=surf(x0),L=a*1.2*lip*bp;xe=x0+L;const ye=yS-a*(1-0.9*bp),qx=x0+L*0.95,qy=y0-a*0.12*lip;
+        if(bp>0.15){c.fillStyle="rgba(5,35,52,.9)";c.beginPath();c.moveTo(x0,y0);c.quadraticCurveTo(qx,qy,xe,ye);c.lineTo(xe,Math.max(ye,surf(xe)));for(let x=xe;x>=x0;x-=2)c.lineTo(x,surf(x));c.closePath();c.fill();}
+        c.strokeStyle="#35b4dd";c.lineCap="round";c.lineWidth=Math.max(3,a*0.15*(1-0.4*bp));c.beginPath();c.moveTo(x0-wf*0.3,surf(x0-wf*0.3));c.lineTo(x0,y0);c.quadraticCurveTo(qx,qy,xe,ye);c.stroke();
+        c.strokeStyle="rgba(255,255,255,.9)";c.lineWidth=2;c.beginPath();c.moveTo(x0,y0-1);c.quadraticCurveTo(qx,qy-2,xe,ye);c.stroke();
+        if(bp>=1&&heroSplashed!==cyc){heroSplashed=cyc;for(let i=0;i<14;i++)heroParts.push({x:xe,y:yS-a*0.15,vx:(Math.random()*1.2-0.1)*a*1.1,vy:-(0.7+Math.random()*0.7)*a*2,life:1,g:a*5,r:1.5+Math.random()*2});}
+      }
+      // espuma después de romper
+      const r=smooth(0.68,1,tau);if(tau>0.68)foamBand(cx-wf,Math.min(W*0.97,cx+wf+W*0.3*r),a*0.35+3,0.9-0.5*r);
+    }else{
+      const s0=k==="picado"?0.3:0.42;const r=smooth(s0,0.85,tau);
+      if(tau>s0)foamBand(cx-wf*0.4,cx+wf*(0.4+1.6*r),a*(0.18+0.25*r)+2,0.88-0.35*smooth(0.85,1,tau));
+      if(k==="picado")for(const o of bumps){const bx=((o+tau*0.8)%1)*W*1.2-W*0.1;foamBand(bx-W*0.03,bx+W*0.05,A*0.08+2,0.7);}
     }
+    // bruma del terral (la cresta “humea” hacia atrás)
+    if(cfg.wk==="terral"&&cfg.ws>10&&tau>0.3&&tau<0.68&&Math.random()<0.6)
+      heroParts.push({x:cx+(Math.random()-0.3)*wf,y:yS-a,vx:-(30+cfg.ws*2.5),vy:-(8+Math.random()*15),life:0.7,g:15,r:0.8+Math.random()});
   }
-  // partículas
   c.fillStyle="#fff";
-  for(let i=heroParts.length-1;i>=0;i--){const p=heroParts[i];p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt*0.9;
-    if(p.life<=0||p.y>yS+8){heroParts.splice(i,1);continue;}c.globalAlpha=clamp(p.life,0,1)*0.9;c.beginPath();c.arc(p.x,p.y,p.r,0,7);c.fill();}
+  for(let i=heroParts.length-1;i>=0;i--){const p=heroParts[i];p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
+    if(p.life<=0||p.y>yS+6){heroParts.splice(i,1);continue;}c.globalAlpha=clamp(p.life,0,1)*0.85;c.beginPath();c.arc(p.x,p.y,p.r,0,7);c.fill();}
   c.globalAlpha=1;
-  // arena (playa a la derecha)
-  g=c.createLinearGradient(0,yS-ppm*0.3,0,H);g.addColorStop(0,"#e3cf9f");g.addColorStop(1,"#b8996a");c.fillStyle=g;
-  c.beginPath();c.moveTo(W*0.55,H);c.lineTo(W*0.9,yS+ppm*0.32);c.lineTo(W,yS-ppm*0.28);c.lineTo(W,H);c.closePath();c.fill();
-  // regla de altura
-  if(k!=="plano"){const yA=yS-A;c.strokeStyle="rgba(255,255,255,.55)";c.setLineDash([4,4]);c.lineWidth=1;c.beginPath();c.moveTo(6,yA);c.lineTo(W*0.42,yA);c.stroke();c.setLineDash([]);
-    c.font="700 12px Outfit";c.fillStyle="#fff";c.textAlign="left";c.fillText(`${fmt(cfg.h)} m`,8,yA-5);}
-  // indicador de viento
-  if(cfg.ws>=8){const col=cfg.wk==="terral"?"#86efac":cfg.wk==="mar"?"#fca5a5":"#e2e8f0";const toSea=cfg.wk==="terral",toShore=cfg.wk==="mar";
-    c.save();c.translate(W-62,18);c.fillStyle="rgba(6,20,31,.6)";c.beginPath();c.roundRect?c.roundRect(-8,-11,64,22,11):c.rect(-8,-11,64,22);c.fill();
-    c.fillStyle=col;c.font="700 11px Outfit";c.textAlign="left";c.fillText((toSea?"← ":toShore?"→ ":"↕ ")+Math.round(cfg.ws)+" km/h",-2,4);c.restore();}
+  // arena y persona parada en la orilla (misma base que el mar → comparación directa)
+  const xP=W*0.88;
+  g=c.createLinearGradient(0,yS,0,H);g.addColorStop(0,"#e3cf9f");g.addColorStop(1,"#b8996a");c.fillStyle=g;
+  c.beginPath();c.moveTo(W*0.62,H);c.lineTo(xP-ppm*0.3,yS+2);c.lineTo(W,yS-ppm*0.08);c.lineTo(W,H);c.closePath();c.fill();
+  drawPerson(c,xP,yS,ppm*1.7,"");
+  c.font="700 11px Outfit";c.fillStyle="#fff";c.textAlign="center";c.fillText("1,70 m",xP,yS-ppm*1.7-6);
+  // altura de la ola
+  if(k!=="plano"){const yA=yS-A;c.strokeStyle="rgba(255,255,255,.6)";c.setLineDash([5,5]);c.lineWidth=1;c.beginPath();c.moveTo(0,yA);c.lineTo(W,yA);c.stroke();c.setLineDash([]);
+    c.font="700 13px Outfit";c.textAlign="left";c.fillStyle="#fff";c.fillText(`Ola ${fmt(cfg.h)} m`,10,yA-6);}
+  // viento, en palabras
+  if(cfg.ws>=8){const col=cfg.wk==="terral"?"#86efac":cfg.wk==="mar"?"#fca5a5":"#e2e8f0";
+    const txt=cfg.wk==="terral"?"← Viento terral":cfg.wk==="mar"?"Viento de mar →":"Viento cruzado";
+    c.font="700 12px Outfit";const tw=c.measureText(txt+"  "+Math.round(cfg.ws)+" km/h").width+18;
+    c.fillStyle="rgba(6,20,31,.65)";c.beginPath();c.roundRect?c.roundRect(W-tw-8,8,tw,24,12):c.rect(W-tw-8,8,tw,24);c.fill();
+    c.fillStyle=col;c.textAlign="left";c.fillText(txt+"  "+Math.round(cfg.ws)+" km/h",W-tw+1,24);}
 }
 
 // ================= Simulación de playa (perspectiva) =================
