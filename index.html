@@ -151,7 +151,7 @@ body.expert th.expert-only,body.expert td.expert-only{display:table-cell}
   <p class="foot">
     <b>Cómo leerlo:</b> la persona mide 1,70 m, así ves el tamaño de la ola. La animación cambia según el tipo de ola que dan los datos: con viento <b>terral</b> (de la tierra al mar) y buen período la ola se para y forma tubo; con viento <b>de mar</b> se desarma y rompe con espuma. Un <b>período</b> más largo significa olas más ordenadas, con más fuerza y más separadas entre sí.<br>
     La animación y la simulación son representaciones aproximadas a partir del pronóstico, no una filmación. El indicador de baño es orientativo: respetá siempre las banderas y a los guardavidas.<br>
-    Datos: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Mapa: © OpenStreetMap, © CARTO
+    Datos: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Mapa: imágenes satelitales © Esri
   </p>
 </div>
 
@@ -447,7 +447,8 @@ function initMap(){
   const el=document.getElementById("map");
   if(!window.L){el.innerHTML='<div style="padding:20px;color:#8fb3c9;font-size:13px">No se pudo cargar el mapa. Elegí la playa en la lista de abajo.</div>';return;}
   map=L.map(el,{scrollWheelZoom:false,zoomControl:true,attributionControl:true});
-  const tiles=L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{attribution:"© OpenStreetMap © CARTO",subdomains:"abcd",maxZoom:18}).addTo(map);
+  const tiles=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{attribution:"Imágenes © Esri",maxZoom:18}).addTo(map);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:18,opacity:.85}).addTo(map);
   tiles.on("tileerror",()=>{if(!coastDrawn){coastDrawn=true;L.polyline(COAST,{color:"#7dd3fc",weight:2,opacity:.7}).addTo(map);}});
   map.fitBounds(L.latLngBounds(BEACHES.map(b=>[b.mlat,b.mlon])),{padding:[24,24]});
   BEACHES.forEach(b=>{const m=L.marker([b.mlat,b.mlon],{icon:L.divIcon({className:"",html:"",iconSize:[36,36],iconAnchor:[18,18]})}).addTo(map);
