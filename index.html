@@ -801,21 +801,21 @@ async function rendition(file,max,q){const bmp=await createImageBitmap(file);con
   const sx=fs*6,sy=fs*3.2,R=Math.hypot(w,h);for(let yy=-R,r=0;yy<R;yy+=sy,r++)for(let xx=-R;xx<R;xx+=sx)x.fillText("olas.uy",xx+(r%2)*sx/2,yy);x.restore();
   return await new Promise(r=>c.toBlob(r,"image/jpeg",q));}
 const cardH=(inner,extra="")=>`<div class="earn" id="earn" hidden></div><div class="card" style="max-width:640px;margin:0 auto">${extra}${inner}</div>`;
-function paintProg(){const p=document.getElementById("upP"),t=document.getElementById("upT");if(p)p.style.width=(UP.total?UP.done/UP.total*100:0)+"%";if(t)t.textContent=`${UP.done} de ${UP.total} fotos`;}
+function paintProg(){const p=document.getElementById("upP"),t=document.getElementById("upT");if(p)p.style.width=(UP.total?UP.done/UP.total*100:0)+"%";if(t)t.textContent=`${UP.done} de ${fotos(UP.total)}`;}
 async function publishSession(){UP.busy=true;UP.done=0;UP.total=UP.files.length;render();
   try{const day=iso(dayAt(UP.k));
     const{data:ses,error}=await SB.from("sessions").insert({photographer_id:ME.id,beach:UP.beach,day,start_time:UP.from,end_time:UP.to,price:UP.price}).select().single();if(error)throw error;
     const put=(url,body,type)=>fetch(url,{method:"PUT",body,headers:{"Content-Type":type}}).then(r=>{if(!r.ok)throw new Error("No se pudo subir una foto ("+r.status+")");});
     for(let i=0;i<UP.files.length;i+=8){const chunk=UP.files.slice(i,i+8);
-      const meta=await Promise.all(chunk.map(async f=>({ext:((f.name.split(".").pop()||"jpg").toLowerCase()).replace("jpeg","jpg"),taken_at:(await exifTime(f))||hm(f.lastModified)})));
-      const{data:urls,error:e2}=await SB.functions.invoke("r2-upload",{body:{session_id:ses.id,files:meta}});if(e2)throw e2;
+      const meta=await Promise.all(chunk.map(async f=>({ext:EXT_OF[f.type]||"jpg",taken_at:(await exifTime(f))||hm(f.lastModified)})));
+      const{data:urls,error:e2}=await SB.functions.invoke("r2-upload",{body:{session_id:ses.id,files:meta}});if(e2)throw new Error("No se pudo preparar la subida: "+(await fnMsg(e2)));
       for(let j=0;j<chunk.length;j++){const f=chunk[j],u=urls[j];
         const pv=await rendition(f,1600,.82),th=await rendition(f,520,.72);
         await put(u.original,f,f.type||"image/jpeg");await put(u.preview,pv,"image/jpeg");await put(u.thumb,th,"image/jpeg");
         const{error:e3}=await SB.from("photos").update({ready:true}).eq("id",u.id);if(e3)throw e3;UP.done++;paintProg();}}
     const{error:e4}=await SB.from("sessions").update({published:true}).eq("id",ses.id);if(e4)throw e4;
     UP.result={beach:UP.beach,day:UP.k,n:UP.done,price:UP.price};UP.urls.forEach(URL.revokeObjectURL);UP.files=[];UP.urls=[];UP.step=4;
-  }catch(e){console.error(e);toast(e.message?.startsWith("No se pudo")?e.message:"No se pudo publicar. Probá de nuevo.");}
+  }catch(e){console.error(e);toast(e.message?.startsWith("No se pudo")?e.message:"No se pudo publicar: "+(e.message||"error"));}
   UP.busy=false;render();}
 function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender fotos",sec:"vender",html,after});
   if(!ME)return R(cardH(`<h2>Vendé tus fotos</h2><p class="mut" style="margin:8px 0 16px">Entrá con Google para crear tu perfil de fotógrafo.</p><button class="btn block" id="vIn">Entrar con Google</button>`),()=>{document.getElementById("vIn").onclick=signIn;});
@@ -840,16 +840,16 @@ function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender
       const m0=new Date(today.getFullYear(),today.getMonth(),1),mes=data.filter(x=>new Date(x.paid_at)>=m0),neto=mes.reduce((t,x)=>t+Number(x.amount)-Number(x.platform_fee),0);
       el.innerHTML=`<span class="stat"><span class="mut">Este mes</span><b class="tab">${money(neto)}</b></span><span class="stat"><span class="mut">Vendidas</span><b class="tab">${mes.length}</b></span>`;el.hidden=false;});};
   // ---- Subiendo
-  if(UP.busy)return R(cardH(`<h2>Subiendo tus fotos…</h2><div class="prog"><i id="upP"></i></div><p class="mut tab" id="upT">${UP.done} de ${UP.total} fotos</p><p class="mut" style="font-size:14px;margin-top:6px">No cierres esta página hasta que termine.</p>`),paintProg);
+  if(UP.busy)return R(cardH(`<h2>Subiendo tus fotos…</h2><div class="prog"><i id="upP"></i></div><p class="mut tab" id="upT">${UP.done} de ${fotos(UP.total)}</p><p class="mut" style="font-size:14px;margin-top:6px">No cierres esta página hasta que termine.</p>`),paintProg);
   // ---- Publicada
-  if(UP.step===4){const r=UP.result;return R(cardH(`<div style="text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center"><div class="okc">✓</div><h2>¡Publicada!</h2><p class="mut">${r.beach} · ${dayName(r.day)} · ${r.n} fotos a ${money(r.price)}</p><button class="btn soft" id="again">Subir otra sesión</button></div>`),
+  if(UP.step===4){const r=UP.result;return R(cardH(`<div style="text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center"><div class="okc">✓</div><h2>¡Publicada!</h2><p class="mut">${r.beach} · ${dayName(r.day)} · ${fotos(r.n)} a ${money(r.price)}</p><button class="btn soft" id="again">Subir otra sesión</button></div>`),
     ()=>{wire();document.getElementById("again").onclick=()=>{UP.step=1;UP.result=null;render();};});}
   const st=UP.step,steps=`<div class="steps" aria-hidden="true">${[1,2,3].map(i=>`<span class="${i<=st?"on":""}"></span>`).join("")}</div>`;let body="";
   if(st===1)body=`<h2>Subí tus fotos</h2>
     <label class="drop" id="drop" for="uF" style="margin-top:14px"><span class="big">⬆︎</span><b>Arrastralas acá o tocá para elegir</b><span class="mut" style="font-size:14px">JPG en máxima calidad · la marca de agua se pone sola</span><input id="uF" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
     <div class="thumbs">${UP.urls.slice(0,24).map(u=>`<div><img src="${u}" alt=""><div class="wm"></div></div>`).join("")}</div>
-    ${UP.files.length?`<p class="mut" style="font-size:14px;margin-top:8px">${UP.files.length} fotos elegidas · <button class="link" id="clr">Sacar todas</button></p>`:""}
-    <button class="btn block" id="next" style="margin-top:16px" ${UP.files.length?"":"disabled"}>${UP.files.length?`Seguir con ${UP.files.length} fotos`:"Elegí tus fotos"}</button>`;
+    ${UP.files.length?`<p class="mut" style="font-size:14px;margin-top:8px">${fotos(UP.files.length)} elegida${UP.files.length===1?"":"s"} · <button class="link" id="clr">Sacar todas</button></p>`:""}
+    <button class="btn block" id="next" style="margin-top:16px" ${UP.files.length?"":"disabled"}>${UP.files.length?`Seguir con ${fotos(UP.files.length)}`:"Elegí tus fotos"}</button>`;
   if(st===2)body=`<h2>¿Dónde y cuándo?</h2>
     <div class="rail" id="ub" style="margin-top:14px">${BEACHES.map(b=>`<button class="chip" data-b="${b}" aria-pressed="${b===UP.beach}">${b}</button>`).join("")}</div>
     <div class="rail" id="uk">${[0,1,2,3,4,5,6].map(k=>`<button class="chip" data-k="${k}" aria-pressed="${k===UP.k}">${dayName(k)}</button>`).join("")}</div>
@@ -859,7 +859,7 @@ function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender
     <div class="price-ctl"><button class="ibtn" id="minus" aria-label="Bajar precio">−</button><b class="tab" id="pv">${money(UP.price)}</b><button class="ibtn" id="plus" aria-label="Subir precio">+</button></div>
     <p class="keep">Te quedan <b class="tab" id="kp">${money2(UP.price*(1-PLAT_FEE))}</b> por foto</p>
     <p class="mut" style="text-align:center;font-size:14px;margin-top:4px">Olas UY se queda el 15% · Mercado Pago cobra su comisión aparte</p>
-    <div class="row" style="margin-top:16px;flex-wrap:nowrap"><button class="btn soft" id="back">←</button><button class="btn coral block" id="pub" ${mpOk?"":"disabled"}>${mpOk?`Publicar ${UP.files.length} fotos`:"Conectá Mercado Pago para publicar"}</button></div>`;
+    <div class="row" style="margin-top:16px;flex-wrap:nowrap"><button class="btn soft" id="back">←</button><button class="btn coral block" id="pub" ${mpOk?"":"disabled"}>${mpOk?`Publicar ${fotos(UP.files.length)}`:"Conectá Mercado Pago para publicar"}</button></div>`;
   return R(cardH(steps+body,mpBar),()=>{const $=id=>document.getElementById(id);wire();
     const add=files=>{const ok=[...files].filter(f=>/^image\/(jpeg|png|webp)$/.test(f.type));if(ok.length<files.length)toast("Algunas fotos no son JPG/PNG y no se agregaron");
       const room=300-UP.files.length;ok.slice(0,room).forEach(f=>{UP.files.push(f);UP.urls.push(URL.createObjectURL(f));});render();};
@@ -876,6 +876,11 @@ function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender
     if($("plus")){$("plus").onclick=()=>setP(UP.price+50);$("minus").onclick=()=>setP(UP.price-50);}
     if($("pub"))$("pub").onclick=publishSession;});}
 const PLAT_FEE=.15;
+// Formato según el tipo real de la imagen (no según el nombre del archivo, que a veces no tiene ".jpg")
+const EXT_OF={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"};
+// Mensaje que devolvió la función del servidor (para mostrar el motivo real del error)
+async function fnMsg(e){try{const j=await e.context.json();return j.error||e.message;}catch(_){return e.message||"error";}}
+const fotos=n=>n===1?"1 foto":`${n} fotos`;
 
 // ============ Visor de foto y compra ============
 const vw=document.getElementById("viewer"),sheet=document.getElementById("sheet"),scrim=document.getElementById("scrim");
