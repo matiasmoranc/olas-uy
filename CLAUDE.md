@@ -32,7 +32,11 @@ Ruteo por hash (`#inicio`, `#olas`, `#fotos`, `#sesion`, `#fotografo`, `#vender`
   - Botón **▶ Simulación** en cada tarjeta (`openSim()`): pantalla completa con la ola animada de costado (`drawWave()`, en canvas) junto a una persona de 1,70 m para escala, a la hora y día de esa tarjeta. `waveType()` define la forma: plano, espuma, formada, tubo, picado o bomba (según altura, período y viento). Adentro hay días y barra de hora; cambiarlos actualiza también esa tarjeta (`S.sel`). Con `prefers-reduced-motion` se dibuja quieta.
 - **Fotos (`#fotos`, `#sesion`)**: "¿Dónde surfeaste?" (playas en círculos) + "¿Cuándo?" (días). En la sesión, barra de hora para encontrarse. Visor a pantalla completa con marca de agua y "Llevala en alta". La compra es una hoja que pide solo mail + Mercado Pago.
 - **Fotógrafo (`#fotografo`)**: perfil público con portada, avatar, números y sesiones.
-- **Vender (`#vender`)**: asistente en 3 pasos (subir fotos con vista previa de la marca de agua → dónde y cuándo → precio con +/− y "te quedan $X") y conexión con Mercado Pago.
+- **Vender (`#vender`)** — REAL cuando hay Supabase (`venderReal()`; sin configuración usa `venderDemo()`):
+  - Sin sesión: "Entrar con Google". Sin perfil (`PH_ME===null`): alta de fotógrafo (nombre, zona, bio; `slug` único con reintento si choca).
+  - Barra "Conectá Mercado Pago" (función `mp-connect`; al volver, `?mp=ok` muestra aviso). Publicar queda bloqueado sin MP conectado.
+  - Asistente: fotos (JPG/PNG/WebP, hasta 300) → playa, día (últimos 7) y horario → precio (te quedan precio×85%).
+  - `publishSession()`: crea la sesión (sin publicar), pide links firmados a `r2-upload` de a 8, sube a R2 la original + previa 1600 px + miniatura 520 px (ambas con marca de agua "olas.uy" hecha en el navegador con `rendition()`), marca cada foto `ready` y al final publica la sesión. Hora de cada foto: EXIF DateTimeOriginal (`exifTime()`) o la del archivo. Barra de progreso.
 
 ## Servidor (en construcción)
 

@@ -220,6 +220,11 @@ section{margin-top:44px}
 .thumbs div{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--mist)}
 .thumbs img{width:100%;height:100%;object-fit:cover;display:block}
 .form2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.prog{height:10px;border-radius:10px;background:var(--line);overflow:hidden;margin:16px 0 8px}
+.prog i{display:block;height:100%;width:0;background:var(--aqua);border-radius:10px;transition:width .3s}
+.fld{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:14px;color:var(--mut);margin-top:12px}
+.fld textarea{resize:vertical;min-height:70px}
+.mpbar{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--sand);border-radius:18px;padding:12px 14px;margin-bottom:14px}
 .price-ctl{display:flex;align-items:center;justify-content:center;gap:18px;margin:10px 0}
 .price-ctl b{font:800 64px/1 var(--display);letter-spacing:-.04em;min-width:190px;text-align:center}
 .keep{text-align:center;font-size:18px}
@@ -729,7 +734,7 @@ V.fotografo=()=>{const p=S.photog,ss=SESSIONS.filter(s=>s.p===p.id);
   <div class="stats"><span class="stat"><b class="tab">${ss.reduce((t,s)=>t+s.n,0)}</b><span class="mut">fotos</span></span><span class="stat"><b class="tab">${ss.length}</b><span class="mut">sesiones</span></span><span class="stat"><b class="tab">${money(ss[0].price)}</b><span class="mut">por foto</span></span></div>
   <section style="margin-top:22px"><div class="sessions">${ss.map(s=>`<button class="sess" data-go="sesion" data-sess="${s.id}" aria-label="${s.beach} ${dayName(s.k)}"><img src="${photo(s.seed*100)}" alt="" loading="lazy"><div class="wm"></div><span class="tag">${dayName(s.k)} · ${s.from}</span><span class="ov"><b>${s.beach}</b><span>${s.n} fotos</span></span></button>`).join("")}</div></section>`};};
 
-V.vender=()=>{const st=S.step;let body="";
+function venderDemo(){const st=S.step;let body="";
   if(st===1)body=`<h2>Subí tus fotos <span class="pill" style="vertical-align:middle;font-family:var(--body);letter-spacing:0">Ejemplo</span></h2>
     <label class="drop" id="drop" for="uF" style="margin-top:14px"><span class="big">⬆︎</span><b>Arrastralas acá o tocá para elegir</b><span class="mut" style="font-size:14px">La marca de agua se pone sola</span><input id="uF" type="file" accept="image/*" multiple hidden></label>
     <div class="row" style="justify-content:center;margin-top:10px"><button class="link" id="demo">Probar con fotos de ejemplo</button></div>
@@ -772,6 +777,105 @@ V.vender=()=>{const st=S.step;let body="";
       const m0=new Date(today.getFullYear(),today.getMonth(),1),mes=data.filter(x=>new Date(x.paid_at)>=m0);
       const neto=mes.reduce((t,x)=>t+Number(x.amount)-Number(x.platform_fee),0);
       el.innerHTML=`<span class="stat"><span class="mut">Este mes</span><b class="tab">${money(neto)}</b></span><span class="stat"><span class="mut">Vendidas</span><b class="tab">${mes.length}</b></span>`;el.hidden=false;});}}};};
+
+// ============ Vender REAL (fotógrafos, con el servidor) ============
+// Si config.js tiene Supabase, "Vender" usa el servidor real; si no, la pantalla de ejemplo.
+V.vender=()=>CFG.supabaseUrl?(SB?venderReal():{url:"olas.uy/vender",title:"Vender fotos",sec:"vender",html:'<div class="card" style="max-width:640px;margin:0 auto"><p class="mut">Cargando…</p></div>'}):venderDemo();
+let PH_ME; // undefined = sin cargar · null = todavía no es fotógrafo · objeto = su perfil
+const UP={files:[],urls:[],step:1,beach:"La Pedrera",k:0,from:"07:00",to:"09:30",price:300,busy:false,done:0,total:0,result:null};
+async function loadMe(){if(!SB||!ME){PH_ME=null;return;}const{data}=await SB.from("photographers").select("*").eq("id",ME.id).maybeSingle();PH_ME=data||null;}
+const ZONES=["Montevideo","Canelones","Piriápolis","Punta del Este","José Ignacio","La Paloma","La Pedrera","Cabo Polonio","Punta del Diablo","Rocha"];
+const hm=ms=>{const d=new Date(ms);return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`;};
+// Hora en que se sacó la foto (EXIF DateTimeOriginal); si no hay, la del archivo
+async function exifTime(file){try{const b=new DataView(await file.slice(0,262144).arrayBuffer());if(b.getUint16(0)!==0xFFD8)return null;let o=2;
+  while(o<b.byteLength-4){const m=b.getUint16(o),len=b.getUint16(o+2);
+    if(m===0xFFE1&&b.getUint32(o+4)===0x45786966){const t=o+10,le=b.getUint16(t)===0x4949,g16=q=>b.getUint16(q,le),g32=q=>b.getUint32(q,le);
+      const tag=(off,id)=>{const n=g16(t+off);for(let i=0;i<n;i++){const e=t+off+2+i*12;if(g16(e)===id)return e;}return null;};
+      const ex=tag(g32(t+4),0x8769);if(!ex)return null;const d=tag(g32(ex+8),0x9003)||tag(g32(ex+8),0x9004);if(!d)return null;
+      const str=String.fromCharCode(...new Uint8Array(b.buffer,t+g32(d+8),19)),mm=str.match(/ (\d\d):(\d\d):\d\d$/);return mm?`${+mm[1]}:${mm[2]}`:null;}
+    if((m&0xFF00)!==0xFF00)break;o+=2+len;}}catch(e){}return null;}
+// Versión achicada (con marca de agua) que se muestra en la web; la original no se toca
+async function rendition(file,max,q){const bmp=await createImageBitmap(file);const k=Math.min(1,max/Math.max(bmp.width,bmp.height)),w=Math.round(bmp.width*k),h=Math.round(bmp.height*k);
+  const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.drawImage(bmp,0,0,w,h);bmp.close&&bmp.close();
+  const fs=Math.max(14,Math.round(w/20));x.save();x.globalAlpha=.4;x.fillStyle="#fff";x.font=`800 ${fs}px Outfit, Arial, sans-serif`;x.translate(w/2,h/2);x.rotate(-.35);
+  const sx=fs*6,sy=fs*3.2,R=Math.hypot(w,h);for(let yy=-R,r=0;yy<R;yy+=sy,r++)for(let xx=-R;xx<R;xx+=sx)x.fillText("olas.uy",xx+(r%2)*sx/2,yy);x.restore();
+  return await new Promise(r=>c.toBlob(r,"image/jpeg",q));}
+const cardH=(inner,extra="")=>`<div class="earn" id="earn" hidden></div><div class="card" style="max-width:640px;margin:0 auto">${extra}${inner}</div>`;
+function paintProg(){const p=document.getElementById("upP"),t=document.getElementById("upT");if(p)p.style.width=(UP.total?UP.done/UP.total*100:0)+"%";if(t)t.textContent=`${UP.done} de ${UP.total} fotos`;}
+async function publishSession(){UP.busy=true;UP.done=0;UP.total=UP.files.length;render();
+  try{const day=iso(dayAt(UP.k));
+    const{data:ses,error}=await SB.from("sessions").insert({photographer_id:ME.id,beach:UP.beach,day,start_time:UP.from,end_time:UP.to,price:UP.price}).select().single();if(error)throw error;
+    const put=(url,body,type)=>fetch(url,{method:"PUT",body,headers:{"Content-Type":type}}).then(r=>{if(!r.ok)throw new Error("No se pudo subir una foto ("+r.status+")");});
+    for(let i=0;i<UP.files.length;i+=8){const chunk=UP.files.slice(i,i+8);
+      const meta=await Promise.all(chunk.map(async f=>({ext:((f.name.split(".").pop()||"jpg").toLowerCase()).replace("jpeg","jpg"),taken_at:(await exifTime(f))||hm(f.lastModified)})));
+      const{data:urls,error:e2}=await SB.functions.invoke("r2-upload",{body:{session_id:ses.id,files:meta}});if(e2)throw e2;
+      for(let j=0;j<chunk.length;j++){const f=chunk[j],u=urls[j];
+        const pv=await rendition(f,1600,.82),th=await rendition(f,520,.72);
+        await put(u.original,f,f.type||"image/jpeg");await put(u.preview,pv,"image/jpeg");await put(u.thumb,th,"image/jpeg");
+        const{error:e3}=await SB.from("photos").update({ready:true}).eq("id",u.id);if(e3)throw e3;UP.done++;paintProg();}}
+    const{error:e4}=await SB.from("sessions").update({published:true}).eq("id",ses.id);if(e4)throw e4;
+    UP.result={beach:UP.beach,day:UP.k,n:UP.done,price:UP.price};UP.urls.forEach(URL.revokeObjectURL);UP.files=[];UP.urls=[];UP.step=4;
+  }catch(e){console.error(e);toast(e.message?.startsWith("No se pudo")?e.message:"No se pudo publicar. Probá de nuevo.");}
+  UP.busy=false;render();}
+function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender fotos",sec:"vender",html,after});
+  if(!ME)return R(cardH(`<h2>Vendé tus fotos</h2><p class="mut" style="margin:8px 0 16px">Entrá con Google para crear tu perfil de fotógrafo.</p><button class="btn block" id="vIn">Entrar con Google</button>`),()=>{document.getElementById("vIn").onclick=signIn;});
+  if(PH_ME===undefined){loadMe().then(()=>{if(location.hash==="#vender")render();});return R(cardH('<p class="mut">Cargando…</p>'));}
+  // ---- Alta de fotógrafo
+  if(PH_ME===null){const n=ME.user_metadata?.full_name||"";
+    return R(cardH(`<h2>Tu perfil de fotógrafo</h2><p class="mut" style="margin-top:6px">Así te van a ver los surfistas.</p>
+      <form id="pf"><label class="fld" for="pfN">Nombre<input class="inp" id="pfN" required minlength="2" maxlength="60" value="${n.replace(/"/g,"&quot;")}"></label>
+      <label class="fld" for="pfZ">Dónde sacás fotos<select class="inp" id="pfZ">${ZONES.map(z=>`<option>${z}</option>`).join("")}</select></label>
+      <label class="fld" for="pfB">Sobre vos <span style="font-weight:400">(opcional)</span><textarea class="inp" id="pfB" maxlength="400" placeholder="Ej: fotos desde el agua en La Pedrera, casi todas las mañanas"></textarea></label>
+      <button class="btn block" style="margin-top:16px">Crear mi perfil</button></form>`),
+      ()=>{document.getElementById("pf").onsubmit=async e=>{e.preventDefault();const btn=e.target.querySelector("button");btn.disabled=true;
+        const name=document.getElementById("pfN").value.trim(),row={id:ME.id,name,zone:document.getElementById("pfZ").value,bio:document.getElementById("pfB").value.trim()||null,avatar_url:ME.user_metadata?.avatar_url||null};
+        let base=slug(name).slice(0,32);if(base.length<3)base="fotografo";let res;
+        for(let t=0;t<4;t++){res=await SB.from("photographers").insert({...row,slug:t?`${base}-${Math.floor(Math.random()*900+100)}`:base}).select().single();if(!res.error||res.error.code!=="23505")break;}
+        if(res.error){toast("No se pudo crear el perfil");btn.disabled=false;return;}PH_ME=res.data;toast("¡Perfil creado!");render();};});}
+  const mpOk=PH_ME.mp_connected;
+  const mpBar=mpOk?"":`<div class="mpbar"><span><b>Conectá Mercado Pago</b><br><span class="mut" style="font-size:14px">Para cobrar tus ventas directo en tu cuenta.</span></span><button class="btn mp" id="mpC" style="padding:11px 16px;flex:0 0 auto">Conectar</button></div>`;
+  const wire=()=>{const $=id=>document.getElementById(id);
+    if($("mpC"))$("mpC").onclick=async()=>{$("mpC").disabled=true;const{data,error}=await SB.functions.invoke("mp-connect",{body:{}});if(data?.url)location.href=data.url;else{toast("No se pudo conectar. Probá de nuevo.");$("mpC").disabled=false;}};
+    if(SB&&ME)SB.rpc("my_sales").then(({data,error})=>{const el=$("earn");if(error||!el||!data?.length)return;
+      const m0=new Date(today.getFullYear(),today.getMonth(),1),mes=data.filter(x=>new Date(x.paid_at)>=m0),neto=mes.reduce((t,x)=>t+Number(x.amount)-Number(x.platform_fee),0);
+      el.innerHTML=`<span class="stat"><span class="mut">Este mes</span><b class="tab">${money(neto)}</b></span><span class="stat"><span class="mut">Vendidas</span><b class="tab">${mes.length}</b></span>`;el.hidden=false;});};
+  // ---- Subiendo
+  if(UP.busy)return R(cardH(`<h2>Subiendo tus fotos…</h2><div class="prog"><i id="upP"></i></div><p class="mut tab" id="upT">${UP.done} de ${UP.total} fotos</p><p class="mut" style="font-size:14px;margin-top:6px">No cierres esta página hasta que termine.</p>`),paintProg);
+  // ---- Publicada
+  if(UP.step===4){const r=UP.result;return R(cardH(`<div style="text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center"><div class="okc">✓</div><h2>¡Publicada!</h2><p class="mut">${r.beach} · ${dayName(r.day)} · ${r.n} fotos a ${money(r.price)}</p><button class="btn soft" id="again">Subir otra sesión</button></div>`),
+    ()=>{wire();document.getElementById("again").onclick=()=>{UP.step=1;UP.result=null;render();};});}
+  const st=UP.step,steps=`<div class="steps" aria-hidden="true">${[1,2,3].map(i=>`<span class="${i<=st?"on":""}"></span>`).join("")}</div>`;let body="";
+  if(st===1)body=`<h2>Subí tus fotos</h2>
+    <label class="drop" id="drop" for="uF" style="margin-top:14px"><span class="big">⬆︎</span><b>Arrastralas acá o tocá para elegir</b><span class="mut" style="font-size:14px">JPG en máxima calidad · la marca de agua se pone sola</span><input id="uF" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
+    <div class="thumbs">${UP.urls.slice(0,24).map(u=>`<div><img src="${u}" alt=""><div class="wm"></div></div>`).join("")}</div>
+    ${UP.files.length?`<p class="mut" style="font-size:14px;margin-top:8px">${UP.files.length} fotos elegidas · <button class="link" id="clr">Sacar todas</button></p>`:""}
+    <button class="btn block" id="next" style="margin-top:16px" ${UP.files.length?"":"disabled"}>${UP.files.length?`Seguir con ${UP.files.length} fotos`:"Elegí tus fotos"}</button>`;
+  if(st===2)body=`<h2>¿Dónde y cuándo?</h2>
+    <div class="rail" id="ub" style="margin-top:14px">${BEACHES.map(b=>`<button class="chip" data-b="${b}" aria-pressed="${b===UP.beach}">${b}</button>`).join("")}</div>
+    <div class="rail" id="uk">${[0,1,2,3,4,5,6].map(k=>`<button class="chip" data-k="${k}" aria-pressed="${k===UP.k}">${dayName(k)}</button>`).join("")}</div>
+    <div class="form2"><label for="uA" class="mut" style="font-weight:600">Desde<input class="inp" id="uA" type="time" value="${UP.from}"></label><label for="uB" class="mut" style="font-weight:600">Hasta<input class="inp" id="uB" type="time" value="${UP.to}"></label></div>
+    <div class="row" style="margin-top:16px;flex-wrap:nowrap"><button class="btn soft" id="back">←</button><button class="btn block" id="next">Seguir</button></div>`;
+  if(st===3)body=`<h2>Tu precio por foto</h2>
+    <div class="price-ctl"><button class="ibtn" id="minus" aria-label="Bajar precio">−</button><b class="tab" id="pv">${money(UP.price)}</b><button class="ibtn" id="plus" aria-label="Subir precio">+</button></div>
+    <p class="keep">Te quedan <b class="tab" id="kp">${money2(UP.price*(1-PLAT_FEE))}</b> por foto</p>
+    <p class="mut" style="text-align:center;font-size:14px;margin-top:4px">Olas UY se queda el 15% · Mercado Pago cobra su comisión aparte</p>
+    <div class="row" style="margin-top:16px;flex-wrap:nowrap"><button class="btn soft" id="back">←</button><button class="btn coral block" id="pub" ${mpOk?"":"disabled"}>${mpOk?`Publicar ${UP.files.length} fotos`:"Conectá Mercado Pago para publicar"}</button></div>`;
+  return R(cardH(steps+body,mpBar),()=>{const $=id=>document.getElementById(id);wire();
+    const add=files=>{const ok=[...files].filter(f=>/^image\/(jpeg|png|webp)$/.test(f.type));if(ok.length<files.length)toast("Algunas fotos no son JPG/PNG y no se agregaron");
+      const room=300-UP.files.length;ok.slice(0,room).forEach(f=>{UP.files.push(f);UP.urls.push(URL.createObjectURL(f));});render();};
+    if($("uF")){$("uF").onchange=e=>add(e.target.files);const d=$("drop");
+      ["dragenter","dragover"].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.classList.add("over");}));
+      ["dragleave","drop"].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.classList.remove("over");}));d.addEventListener("drop",e=>add(e.dataTransfer.files));}
+    if($("clr"))$("clr").onclick=()=>{UP.urls.forEach(URL.revokeObjectURL);UP.files=[];UP.urls=[];render();};
+    if($("next"))$("next").onclick=()=>{if(st===2){UP.from=$("uA").value||UP.from;UP.to=$("uB").value||UP.to;if(UP.to<=UP.from){toast("La hora de fin tiene que ser después del inicio");return;}}UP.step++;render();};
+    if($("back"))$("back").onclick=()=>{if(st===2){UP.from=$("uA").value||UP.from;UP.to=$("uB").value||UP.to;}UP.step--;render();};
+    if($("ub")){$("ub").onclick=e=>{const b=e.target.closest("[data-b]");if(b){UP.beach=b.dataset.b;$("ub").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c===b));}};
+      $("uk").onclick=e=>{const b=e.target.closest("[data-k]");if(b){UP.k=+b.dataset.k;$("uk").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c===b));}};
+      const sel=$("ub").querySelector('[aria-pressed="true"]');sel&&sel.scrollIntoView({inline:"center",block:"nearest"});}
+    const setP=v=>{UP.price=Math.max(50,Math.min(5000,v));$("pv").textContent=money(UP.price);$("kp").textContent=money2(UP.price*(1-PLAT_FEE));};
+    if($("plus")){$("plus").onclick=()=>setP(UP.price+50);$("minus").onclick=()=>setP(UP.price-50);}
+    if($("pub"))$("pub").onclick=publishSession;});}
+const PLAT_FEE=.15;
 
 // ============ Visor de foto y compra ============
 const vw=document.getElementById("viewer"),sheet=document.getElementById("sheet"),scrim=document.getElementById("scrim");
@@ -835,7 +939,11 @@ async function initAccounts(){
     const{data}=await SB.auth.getSession();ME=data.session?.user||null;paintAcct();
     // Al entrar: sumar a la cuenta las compras hechas antes solo con este mail
     if(ME)SB.rpc("claim_purchases").then(()=>{},()=>{});
-    SB.auth.onAuthStateChange((ev,ses)=>{ME=ses?.user||null;paintAcct();if(ev==="SIGNED_IN"){SB.rpc("claim_purchases").then(()=>{},()=>{});}});
+    SB.auth.onAuthStateChange((ev,ses)=>{const was=ME?.id;ME=ses?.user||null;paintAcct();if(ev==="SIGNED_IN"){SB.rpc("claim_purchases").then(()=>{},()=>{});}
+      if(was!==ME?.id){PH_ME=undefined;if(location.hash==="#vender")render();}});
+    // Vuelta desde Mercado Pago (conexión del fotógrafo)
+    const qs=new URLSearchParams(location.search);if(qs.get("mp")){toast(qs.get("mp")==="ok"?"Mercado Pago conectado ✓":"No se pudo conectar Mercado Pago");qs.delete("mp");history.replaceState(null,"",location.pathname+(qs.toString()?"?"+qs:"")+location.hash);}
+    if(location.hash==="#vender")render();
   }catch(e){console.warn("No se pudo cargar el inicio de sesión",e);}}
 boot();initAccounts();
 </script>
