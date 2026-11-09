@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#06141f">
+<meta name="description" content="Pronóstico de olas para las playas de Uruguay: tamaño de ola, viento, período y el mejor momento para surfear o bañarse.">
+<link rel="canonical" href="https://olas.uy/">
 <title>Olas UY — pronóstico de olas por playa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -22,6 +24,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:10px;ma
 .banner{font-size:13px;line-height:1.4;padding:10px 12px;border-radius:12px;margin-bottom:12px;border:1px solid}
 .banner.demo{background:#3a2a06;border-color:#7a5a10;color:#fde68a}
 .banner.live{background:#062e22;border-color:#14532d;color:#86efac}
+.banner.cache{background:#0b2f4a;border-color:#2a6a96;color:#bae6fd}
 #map{height:300px;border-radius:18px;border:1px solid var(--line);overflow:hidden;background:#0a2233;margin-bottom:10px}
 .leaflet-container{font-family:Outfit,sans-serif;background:#0a2233}
 .mk{width:36px;height:36px;border-radius:50%;background:var(--c);color:#06141f;font:800 11.5px Outfit;display:flex;align-items:center;justify-content:center;border:2.5px solid #06141f;box-shadow:0 2px 8px rgba(0,0,0,.5);transition:transform .2s}
@@ -38,7 +41,8 @@ header{display:flex;align-items:center;justify-content:space-between;gap:10px;ma
 .time{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:12px}
 .time .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
 .time .when{font-size:18px;font-weight:700}
-.time .hint{font-size:12px;color:var(--mut)}
+.time .hint{font-size:12.5px;color:var(--mut)}
+.time .sun{font-size:13px;color:#fde68a;margin-top:6px}
 input[type=range]{width:100%;accent-color:var(--acc)}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .chip{border:1px solid var(--line);background:var(--card2);color:var(--tx);font:500 12.5px Outfit;padding:6px 10px;border-radius:999px;cursor:pointer}
@@ -62,15 +66,27 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 .swim{font-size:12.5px;font-weight:600;padding:4px 9px;border-radius:8px;display:inline-block;margin:8px 14px 0}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:12px 14px}
 .st{background:var(--card2);border-radius:12px;padding:8px 9px}
-.st .l{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px}
+.st .l{font-size:11.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px}
 .st .v{font-size:16px;font-weight:700;display:flex;align-items:center;gap:4px}
-.st .d{font-size:11.5px;color:var(--mut);line-height:1.2}
+.st .d{font-size:12.5px;color:var(--mut);line-height:1.2}
 .arrow{width:16px;height:16px;display:inline-block}
 .simbtn{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 14px 14px;width:calc(100% - 28px);border:0;border-radius:14px;padding:14px;font:700 16px Outfit;color:#04202f;background:linear-gradient(135deg,#38bdf8,#2dd4bf);cursor:pointer;box-shadow:0 6px 20px rgba(56,189,248,.25)}
 .sec{padding:0 14px 14px}
 .sec h4{font-size:13px;color:var(--mut);font-weight:600;margin:6px 0 6px}
-.chart{width:100%;height:auto;display:block;cursor:pointer}
-.tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+.chartwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.chart{width:100%;min-width:680px;height:auto;display:block;cursor:pointer}
+.fav{border:1px solid var(--line);background:var(--card2);color:#fde047;font:700 18px Outfit;width:36px;height:32px;border-radius:999px;cursor:pointer;flex:0 0 auto}
+.fav[aria-pressed="false"]{color:var(--mut)}
+.phr{display:flex;gap:6px;align-items:center}
+.days{display:flex;flex-direction:column;gap:6px}
+.day{display:grid;grid-template-columns:76px 1fr auto;gap:8px;align-items:center;text-align:left;width:100%;border:1px solid var(--line);background:var(--card2);color:var(--tx);font:500 14px Outfit;padding:9px 11px;border-radius:12px;cursor:pointer}
+.day.on{border-color:#e8f4fb}
+.day b{font-weight:700}
+.day .w{color:var(--mut);font-size:13px;line-height:1.3}
+.day .w em{font-style:normal;color:var(--tx);font-weight:600}
+.day .r{font-weight:700;font-size:13px;padding:4px 9px;border-radius:999px;color:#06141f;white-space:nowrap}
+.day.night{cursor:default;opacity:.7}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
 .tbl th{color:var(--mut);font-weight:500;text-align:left;padding:5px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
 .tbl td{padding:5px 4px;border-bottom:1px solid #16384f;white-space:nowrap}
 .tbl tr.sel td{background:#16405a}
@@ -78,9 +94,9 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 .expert-only{display:none}
 body.expert .expert-only{display:block}
 body.expert th.expert-only,body.expert td.expert-only{display:table-cell}
-.legend{display:flex;flex-wrap:wrap;gap:8px 12px;font-size:12px;color:var(--mut);margin:16px 2px 6px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 12px;font-size:13px;color:var(--mut);margin:16px 2px 6px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
-.foot{font-size:12px;color:var(--mut);line-height:1.5;margin-top:12px}
+.foot{font-size:13px;color:var(--mut);line-height:1.5;margin-top:12px}
 .foot a{color:var(--acc)}
 /* Simulación */
 #sim{position:fixed;inset:0;background:#06141f;z-index:2000;display:none}
@@ -101,6 +117,7 @@ body.expert th.expert-only,body.expert td.expert-only{display:table-cell}
 .toast{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);background:rgba(255,255,255,.92);color:#06141f;font:800 16px Outfit;padding:9px 16px;border-radius:999px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .toast.on{opacity:1}
 .toast.set{background:#fde047}
+@media (prefers-reduced-motion: reduce){.mk{transition:none}}
 </style>
 </head>
 <body>
@@ -120,16 +137,17 @@ body.expert th.expert-only,body.expert td.expert-only{display:table-cell}
   <div class="beaches" id="beaches"></div>
 
   <div class="time">
-    <div class="row"><div class="when" id="when">—</div><div class="hint">Deslizá para ver otra hora</div></div>
-    <input type="range" id="slider" min="0" max="71" value="0">
+    <div class="row"><div class="when" id="when" aria-live="polite">—</div><div class="hint">Deslizá para ver otra hora</div></div>
+    <input type="range" id="slider" min="0" max="167" value="0" aria-label="Hora del pronóstico">
+    <div class="sun" id="sun"></div>
     <div class="chips" id="chips"></div>
   </div>
 
   <div id="best"></div>
 
   <div class="panel">
-    <div class="ph"><div><div class="name" id="pName">—</div><div class="zone" id="pZone"></div></div><span class="pill" id="pPill"></span></div>
-    <canvas id="hero"></canvas>
+    <div class="ph"><div><div class="name" id="pName">—</div><div class="zone" id="pZone"></div></div><div class="phr"><span class="pill" id="pPill"></span><button class="fav" id="pFav" aria-pressed="false" aria-label="Marcar como favorita" title="Favorita">☆</button></div></div>
+    <canvas id="hero" role="img" aria-label="Animación de la ola"></canvas>
     <div class="wtype"><div class="t" id="pType"></div><div class="d" id="pTypeD"></div></div>
     <div class="big"><b id="pH">—</b><span id="pHuman"></span></div>
     <span class="swim" id="pSwim"></span>
@@ -137,20 +155,24 @@ body.expert th.expert-only,body.expert td.expert-only{display:table-cell}
     <button class="simbtn" id="simBtn">▶ Simulación</button>
     <div class="sec expert-only" id="pExpert"></div>
     <div class="sec">
-      <h4>Próximas 72 horas · tocá una barra para ver esa hora</h4>
-      <div id="pChart"></div>
-      <div style="font-size:11.5px;color:var(--mut);margin-top:4px">Barras = altura de ola · Flechas = viento (verde: terral, rojo: de mar) · números = km/h · zona oscura = noche</div>
-      <h4 style="margin-top:12px">Hora por hora</h4>
+      <h4>Próximos días · el mejor momento para surfear (con luz de día)</h4>
+      <div class="days" id="pDays"></div>
+    </div>
+    <div class="sec">
+      <h4>Próximos 7 días · tocá una barra para ver esa hora</h4>
+      <div class="chartwrap" id="pChart"></div>
+      <div style="font-size:12.5px;color:var(--mut);margin-top:4px">Barras = altura de ola en la playa · Flechas = viento (verde: terral, rojo: de mar) · números = km/h · zona oscura = noche (según amanecer y atardecer)</div>
+      <h4 style="margin-top:12px" id="pTableH">Hora por hora</h4>
       <div class="tblwrap" id="pTable"></div>
     </div>
   </div>
 
   <div class="legend">
     <span><i style="background:#64748b"></i>Plano</span><span><i style="background:#f97316"></i>Malo</span><span><i style="background:#eab308"></i>Regular</span>
-    <span><i style="background:#22c55e"></i>Bueno</span><span><i style="background:#2dd4bf"></i>Muy bueno</span><span><i style="background:#ef4444"></i>Peligroso</span>
+    <span><i style="background:#22c55e"></i>Bueno</span><span><i style="background:#a78bfa"></i>Muy bueno</span><span><i style="background:#ef4444"></i>Peligroso</span>
   </div>
   <p class="foot">
-    <b>Cómo leerlo:</b> la persona mide 1,70 m, así ves el tamaño de la ola. La animación cambia según el tipo de ola que dan los datos: con viento <b>terral</b> (de la tierra al mar) y buen período la ola se para y forma tubo; con viento <b>de mar</b> se desarma y rompe con espuma. Un <b>período</b> más largo significa olas más ordenadas, con más fuerza y más separadas entre sí.<br>
+    <b>Cómo leerlo:</b> la persona mide 1,70 m, así ves el tamaño de la ola. La altura que se muestra es la ola <b>en la playa</b>: tiene en cuenta hacia dónde mira cada playa y de dónde viene el mar de fondo (en modo Experto ves también la altura mar adentro). La animación cambia según el tipo de ola que dan los datos: con viento <b>terral</b> (de la tierra al mar) y buen período la ola se para y forma tubo; con viento <b>de mar</b> se desarma y rompe con espuma. Un <b>período</b> más largo significa olas más ordenadas, con más fuerza y más separadas entre sí.<br>
     La animación y la simulación son representaciones aproximadas a partir del pronóstico, no una filmación. El indicador de baño es orientativo: respetá siempre las banderas y a los guardavidas.<br>
     Datos: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Mapa: imágenes satelitales © Esri
   </p>
@@ -174,30 +196,39 @@ body.expert th.expert-only,body.expert td.expert-only{display:table-cell}
 // ================= Playas =================
 // lat/lon: punto en el mar para el pronóstico · mlat/mlon: marcador en el mapa · facing: hacia dónde mira la playa
 const BEACHES = [
+  {id:"kiyu",    name:"Kiyú",             zone:"San José",       lat:-34.71,lon:-56.73, mlat:-34.687,mlon:-56.727, facing:200},
   {id:"pocitos", name:"Pocitos",          zone:"Montevideo",     lat:-34.93,lon:-56.15, mlat:-34.912,mlon:-56.150, facing:180},
   {id:"solymar", name:"Solymar",          zone:"Ciudad de la Costa", lat:-34.87,lon:-55.96, mlat:-34.840,mlon:-55.965, facing:165},
   {id:"pinar",   name:"El Pinar",         zone:"Ciudad de la Costa", lat:-34.83,lon:-55.89, mlat:-34.803,mlon:-55.895, facing:165},
   {id:"bello",   name:"Bello Horizonte",  zone:"Canelones",      lat:-34.81,lon:-55.39, mlat:-34.778,mlon:-55.390, facing:175},
   {id:"cuchilla",name:"Cuchilla Alta",    zone:"Canelones",      lat:-34.82,lon:-55.32, mlat:-34.797,mlon:-55.322, facing:175},
+  {id:"pnegra",  name:"Punta Negra",      zone:"Maldonado",      lat:-34.92,lon:-55.24, mlat:-34.903,mlon:-55.236, facing:175},
   {id:"piria",   name:"Piriápolis",       zone:"Maldonado",      lat:-34.89,lon:-55.27, mlat:-34.866,mlon:-55.275, facing:165},
+  {id:"emir",    name:"El Emir",          zone:"Punta del Este", lat:-34.97,lon:-54.95, mlat:-34.960,mlon:-54.945, facing:145},
   {id:"brava",   name:"Playa Brava",      zone:"Punta del Este", lat:-34.97,lon:-54.93, mlat:-34.953,mlon:-54.933, facing:150},
   {id:"montoya", name:"Montoya",          zone:"La Barra",       lat:-34.93,lon:-54.85, mlat:-34.918,mlon:-54.862, facing:160},
   {id:"jose",    name:"José Ignacio",     zone:"Maldonado",      lat:-34.86,lon:-54.63, mlat:-34.840,mlon:-54.640, facing:165},
+  {id:"balconada",name:"La Balconada",    zone:"La Paloma",      lat:-34.68,lon:-54.17, mlat:-34.662,mlon:-54.168, facing:195},
+  {id:"botes",   name:"Los Botes",        zone:"La Paloma",      lat:-34.67,lon:-54.14, mlat:-34.658,mlon:-54.150, facing:110},
   {id:"aguada",  name:"La Aguada",        zone:"La Paloma",      lat:-34.67,lon:-54.13, mlat:-34.651,mlon:-54.158, facing:125},
   {id:"pedrera", name:"La Pedrera",       zone:"Rocha",          lat:-34.60,lon:-54.10, mlat:-34.594,mlon:-54.124, facing:125},
+  {id:"rubia",   name:"Punta Rubia",      zone:"Rocha",          lat:-34.62,lon:-54.10, mlat:-34.612,mlon:-54.117, facing:135},
   {id:"polonio", name:"Cabo Polonio",     zone:"Rocha",          lat:-34.42,lon:-53.78, mlat:-34.402,mlon:-53.790, facing:150},
+  {id:"valizas", name:"Barra de Valizas", zone:"Rocha",          lat:-34.35,lon:-53.77, mlat:-34.338,mlon:-53.788, facing:140},
   {id:"diablo",  name:"Punta del Diablo", zone:"Rocha",          lat:-34.05,lon:-53.52, mlat:-34.043,mlon:-53.542, facing:110},
   {id:"teresa",  name:"Santa Teresa",     zone:"Rocha",          lat:-33.98,lon:-53.50, mlat:-33.973,mlon:-53.528, facing:115},
 ];
-const COAST = [[-34.88,-56.40],[-34.91,-56.20],[-34.91,-56.10],[-34.85,-55.95],[-34.77,-55.76],[-34.80,-55.50],[-34.87,-55.27],[-34.91,-55.05],[-34.97,-54.95],[-34.91,-54.86],[-34.84,-54.63],[-34.80,-54.55],[-34.72,-54.30],[-34.66,-54.16],[-34.59,-54.13],[-34.50,-53.95],[-34.40,-53.78],[-34.34,-53.79],[-34.20,-53.65],[-34.04,-53.54],[-33.97,-53.51],[-33.74,-53.37]];
+const COAST = [[-34.68,-56.75],[-34.78,-56.55],[-34.88,-56.40],[-34.91,-56.20],[-34.91,-56.10],[-34.85,-55.95],[-34.77,-55.76],[-34.80,-55.50],[-34.87,-55.27],[-34.91,-55.05],[-34.97,-54.95],[-34.91,-54.86],[-34.84,-54.63],[-34.80,-54.55],[-34.72,-54.30],[-34.66,-54.16],[-34.59,-54.13],[-34.50,-53.95],[-34.40,-53.78],[-34.34,-53.79],[-34.20,-53.65],[-34.04,-53.54],[-33.97,-53.51],[-33.74,-53.37]];
 
-const COLORS={plano:"#64748b",malo:"#f97316",regular:"#eab308",bueno:"#22c55e",muybueno:"#2dd4bf",peligro:"#ef4444"};
+const COLORS={plano:"#64748b",malo:"#f97316",regular:"#eab308",bueno:"#22c55e",muybueno:"#a78bfa",peligro:"#ef4444"};
 const LABELS={plano:"Plano",malo:"Malo",regular:"Regular",bueno:"Bueno",muybueno:"Muy bueno",peligro:"Peligroso"};
 const DIAS=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const CARD=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];
 
-let DATA=null,TIMES=[],idx=0,selId="brava";
+let FULL=null,DATA=null,TIMES=[],idx=0,selId="brava",FAVS=new Set();
 try{ const s=localStorage.getItem("olasuy-beach"); if(s) selId=s; }catch(e){}
+try{ FAVS=new Set(JSON.parse(localStorage.getItem("olasuy-favs")||"[]")); }catch(e){}
+const RM=window.matchMedia?matchMedia("(prefers-reduced-motion: reduce)"):{matches:false};
 if(location.hash && BEACHES.some(b=>b.id===location.hash.slice(1))) selId=location.hash.slice(1);
 
 // ================= Utilidades =================
@@ -205,8 +236,18 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const card16=d=>d==null?"—":CARD[Math.round(((d%360)+360)%360/22.5)%16];
 const fmt=(v,n=1)=>v==null||isNaN(v)?"—":v.toFixed(n).replace(".",",");
 const angDiff=(a,b)=>{let d=Math.abs(a-b)%360;return d>180?360-d:d;};
+// Hora de Uruguay (las horas de la API vienen en America/Montevideo, no en la del dispositivo)
+const TZ="America/Montevideo",TZ_OFF=-180;
+function nowUY(){try{const p={};new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).forEach(x=>p[x.type]=x.value);
+  return new Date(+p.year,+p.month-1,+p.day,+p.hour%24,+p.minute);}catch(e){const d=new Date();return new Date(d.getTime()+(d.getTimezoneOffset()+TZ_OFF)*60000);}}
+const pad=n=>String(n).padStart(2,"0");
+const tStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`;
+const hhmm=hf=>{const m=Math.round(hf*60);return pad(Math.floor(m/60))+":"+pad(m%60);};
 function parseT(s){const[d,t]=s.split("T");const[y,m,da]=d.split("-").map(Number);const[h,mi]=t.split(":").map(Number);return new Date(y,m-1,da,h,mi);}
-function whenLabel(s){const d=parseT(s),now=new Date();const day0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+function dayLabel(s){const d=parseT(s),now=nowUY();const day0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const diff=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-day0)/864e5);
+  return diff===0?"Hoy":diff===1?"Mañana":DIAS[d.getDay()]+" "+d.getDate();}
+function whenLabel(s){const d=parseT(s),now=nowUY();const day0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const diff=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-day0)/864e5);
   const dn=diff===0?"Hoy":diff===1?"Mañana":DIAS[d.getDay()]+" "+d.getDate();
   return dn+" · "+String(d.getHours()).padStart(2,"0")+":00";}
@@ -214,13 +255,32 @@ function arrowSVG(fromDeg,color="#cfe8f5"){const r=(fromDeg==null?0:fromDeg)+180
   return `<svg class="arrow" viewBox="0 0 16 16" style="transform:rotate(${r}deg)"><path d="M8 1 L13 12 L8 9.5 L3 12 Z" fill="${color}"/></svg>`;}
 const beach=()=>DATA.find(b=>b.id===selId)||DATA[0];
 
+// ================= Amanecer y atardecer =================
+// Se usan los de la API; si no hay (sin conexión o datos de ejemplo) se calculan (fórmula NOAA, error de ~1 min).
+const SOLAR={};
+function solar(b,ds){const k=b.id+ds;if(SOLAR[k])return SOLAR[k];
+  const[y,m,d]=ds.split("-").map(Number);const n=Math.round((Date.UTC(y,m-1,d)-Date.UTC(y,0,0))/864e5);const g=2*Math.PI/365*(n-1);
+  const eq=229.18*(0.000075+0.001868*Math.cos(g)-0.032077*Math.sin(g)-0.014615*Math.cos(2*g)-0.040849*Math.sin(2*g));
+  const dec=0.006918-0.399912*Math.cos(g)+0.070257*Math.sin(g)-0.006758*Math.cos(2*g)+0.000907*Math.sin(2*g)-0.002697*Math.cos(3*g)+0.00148*Math.sin(3*g);
+  const la=b.lat*Math.PI/180;const ha=Math.acos(clamp(Math.cos(90.833*Math.PI/180)/(Math.cos(la)*Math.cos(dec))-Math.tan(la)*Math.tan(dec),-1,1))*180/Math.PI;
+  return SOLAR[k]=[(720-4*(b.lon+ha)-eq+TZ_OFF)/60,(720-4*(b.lon-ha)-eq+TZ_OFF)/60];}
+function sunFor(b,ds){const s=FULL&&FULL.sun&&FULL.sun[b.id]&&FULL.sun[b.id][ds];return s||solar(b,ds);}
+// ¿La hora i tiene luz de día? (cuenta la hora del amanecer: se surfea con la primera luz)
+function isDay(b,i){const t=TIMES[i];if(!t)return false;const[r,st]=sunFor(b,t.slice(0,10));const h=parseT(t).getHours();return h+1>r&&h<st;}
+
 // ================= Interpretación =================
 function humanSize(h){if(h==null)return"—";if(h<0.3)return"Plano";if(h<0.5)return"A la rodilla";if(h<0.9)return"A la cintura";if(h<1.3)return"Al pecho";if(h<1.8)return"A la cabeza";if(h<2.5)return"Por encima de la cabeza";return"Doble cabeza o más";}
 function windType(b,wd,ws){if(ws==null)return{k:"—",txt:"—"};if(ws<8)return{k:"calmo",txt:"Calmo"};
   const d=angDiff(wd,(b.facing+180)%360);if(d<=50)return{k:"terral",txt:"Terral"};if(d>=130)return{k:"mar",txt:"De mar"};return{k:"cruzado",txt:"Cruzado"};}
 function periodTxt(p){if(p==null)return"—";if(p<7)return"Corta, desordenada";if(p<9)return"Normal";if(p<12)return"Buena, ordenada";return"Mar de fondo, con fuerza";}
+// Cuánto del mar entra a la playa según de dónde viene (1 = de frente, 0,15 = protegida)
+function expo(b,dir){if(dir==null)return 1;const d=angDiff(dir,b.facing);return d<=35?1:d>=115?0.15:1-0.85*(d-35)/80;}
+// Altura de ola en la playa: suma (por energía) del mar de fondo y del mar de viento, cada uno según su dirección
+function effHeight(b,x){if(x.h==null)return null;
+  if(x.sh!=null&&x.wh!=null){const s=x.sh*expo(b,x.sd??x.d),w=x.wh*expo(b,x.wwd??x.d);return Math.min(x.h,Math.sqrt(s*s+w*w));}
+  return x.h*expo(b,x.d);}
 function evaluate(b,x){
-  const h=x.h,p=x.p,ws=x.ws;const w=windType(b,x.wd,ws);
+  const h=x.he,p=x.p,ws=x.ws;const w=windType(b,x.wd,ws);
   if(h==null)return{score:0,cls:"plano",w,swim:{t:"—",c:"#333",f:"#fff"}};
   let s;if(h<0.3)s=0;else if(h<0.5)s=2;else if(h<0.8)s=4;else if(h<1.2)s=6;else if(h<2)s=8;else if(h<2.8)s=7;else if(h<3.5)s=5;else s=3;
   s*=p==null?1:p<6?0.7:p<8?0.85:p<11?1:1.1;
@@ -232,7 +292,7 @@ function evaluate(b,x){
 }
 // Tipo de ola: define la forma de la animación
 function waveType(b,x,e){
-  const h=x.h||0,p=x.p||0,ws=x.ws||0,w=e.w;
+  const h=x.he||0,p=x.p||0,ws=x.ws||0,w=e.w;
   if(h<0.3)return{k:"plano",lip:0,t:"Mar plano",d:"Casi sin olas. Ideal para bañarse, nadar o hacer paddle."};
   if(h>=2.8)return{k:"bomba",lip:1.2,t:"Olas grandes y pesadas",d:"Rompen de golpe y con mucha fuerza, cerrando toda la línea. Solo para surfistas expertos."};
   if((w.k==="mar"&&ws>=15)||p<5)return{k:"picado",lip:0,t:"Mar picado",d:"El viento de mar y el período corto desarman las olas: rompen desordenadas, con mucha espuma y sin forma."};
@@ -337,14 +397,14 @@ function openSim(){
   let t=-SIM.D*1.05;while(t<0){spawnWave(t);t+=per*(0.92+Math.random()*0.16);}SIM.next=t;
   for(let i=0;i<(ty.k==="picado"?90:45);i++)SIM.chop.push({u:Math.random(),v:Math.random(),l:0.5+Math.random()});
   document.getElementById("sName").textContent=b.name;
-  document.getElementById("sInfo").innerHTML=`${whenLabel(TIMES[idx])}<br>${ty.t} · ${fmt(x.h)} m · una ola cada ${fmt(per,0)} s<br>Viento ${e.w.txt.toLowerCase()} ${Math.round(x.ws||0)} km/h`;
+  document.getElementById("sInfo").innerHTML=`${whenLabel(TIMES[idx])}<br>${ty.t} · ${fmt(x.he)} m · una ola cada ${fmt(per,0)} s<br>Viento ${e.w.txt.toLowerCase()} ${Math.round(x.ws||0)} km/h`;
   document.querySelectorAll("#speeds button").forEach(x=>x.classList.toggle("on",x.dataset.s==="1"));
   simEl.classList.add("on");[simW,simH]=sizeCanvas(simCv,sc);document.body.style.overflow="hidden";
 }
 function spawnWave(born){
   const n=SIM.n++;const pos=n%10;const isSet=pos>=6;
   const env=isSet?1+0.28*Math.sin((pos-6)/3*Math.PI)+Math.random()*0.06:0.55+Math.random()*0.3;
-  const amp=Math.max(0.1,(SIM.x.h||0.3)*env);
+  const amp=Math.max(0.1,(SIM.x.he||0.3)*env);
   SIM.waves.push({born,amp,isSet,peak:0.2+Math.random()*0.6,id:n,broke:false,breakS:clamp(0.9-0.06*amp,0.68,0.9)});
 }
 let simW=0,simH=0;
@@ -431,22 +491,31 @@ function drawSim(dt){
 function closeSim(){simEl.classList.remove("on");SIM=null;document.body.style.overflow="";}
 
 // ================= Bucle de animación =================
+// Con "reducir movimiento" activado en el sistema, la ola se dibuja quieta (un cuadro, justo cuando rompe)
+let heroStatic=null;
 function loop(ts){const dt=Math.min(0.05,(ts-(lastTs||ts))/1000);lastTs=ts;
-  if(SIM)drawSim(dt);else drawHero(ts,dt);requestAnimationFrame(loop);}
+  if(SIM)drawSim(dt);
+  else if(RM.matches){if(heroCfg&&heroStatic!==heroCfg){heroStatic=heroCfg;heroParts=[];drawHero(clamp(heroCfg.p*0.6,4,8)*0.62*1000,0);}}
+  else drawHero(ts,dt);
+  requestAnimationFrame(loop);}
 
 // ================= Gráfico 72 h =================
 function chartSVG(b){
-  const W=720,H=170,top=14,bot=40,n=TIMES.length,bw=W/n;const maxH=Math.max(1.5,...b.hours.map(x=>x.h||0))*1.1;let g="";
+  const W=720,H=200,top=26,bot=46,n=TIMES.length,bw=W/n;const maxH=Math.max(1.5,...b.hours.map(x=>x.he||0))*1.1;let g="";
+  // noche (según amanecer/atardecer reales) y separación de días
   TIMES.forEach((t,i)=>{const d=parseT(t);if(d.getHours()===0&&i>0)g+=`<line x1="${i*bw}" y1="0" x2="${i*bw}" y2="${H}" stroke="#2a5672" stroke-dasharray="3 3"/>`;
-    if(d.getHours()===12)g+=`<text x="${i*bw}" y="11" fill="#8fb3c9" font-size="11" text-anchor="middle" font-family="Outfit">${whenLabel(t).split(" · ")[0]}</text>`;
-    const hh=d.getHours();if(hh<6||hh>=20)g+=`<rect x="${i*bw}" y="${top}" width="${bw}" height="${H-top-bot}" fill="#000" opacity=".18"/>`;});
-  b.hours.forEach((x,i)=>{const e=evaluate(b,x);const bh=((x.h||0)/maxH)*(H-top-bot);g+=`<rect x="${i*bw+0.6}" y="${H-bot-bh}" width="${bw-1.2}" height="${bh}" rx="1.5" fill="${COLORS[e.cls]}" opacity="${i===idx?1:.75}"/>`;});
-  for(let i=0;i<n;i+=3){const x=b.hours[i];if(x.wd==null)continue;const cx=i*bw+bw*1.5,cy=H-22;const w=windType(b,x.wd,x.ws);const col=w.k==="terral"?"#86efac":w.k==="mar"?"#fca5a5":"#cfe8f5";
-    g+=`<g transform="translate(${cx} ${cy}) rotate(${x.wd+180})"><path d="M0 -7 L4.5 5 L0 2.6 L-4.5 5 Z" fill="${col}"/></g>`;
-    if(i%6===0)g+=`<text x="${cx}" y="${H-3}" fill="#8fb3c9" font-size="9.5" text-anchor="middle" font-family="Outfit">${Math.round(x.ws)}</text>`;}
-  g+=`<rect x="${idx*bw}" y="${top-2}" width="${bw}" height="${H-top-bot+4}" fill="none" stroke="#fff" stroke-width="1.5" rx="2"/>`;
-  g+=`<text x="4" y="${top+12}" fill="#cfe8f5" font-size="11" font-family="Outfit">${fmt(maxH/1.1,1)} m</text>`;
-  return `<svg class="chart" id="chartSvg" viewBox="0 0 ${W} ${H}">${g}</svg>`;
+    if(!isDay(b,i))g+=`<rect x="${i*bw}" y="${top}" width="${bw+0.3}" height="${H-top-bot}" fill="#000" opacity=".22"/>`;});
+  // nombre de cada día, centrado en su tramo
+  let i0=0;for(let i=1;i<=n;i++){if(i===n||TIMES[i].slice(0,10)!==TIMES[i0].slice(0,10)){const w=(i-i0)*bw;
+    if(w>=44)g+=`<text x="${(i0+(i-i0)/2)*bw}" y="17" fill="#cfe8f5" font-size="15" font-weight="600" text-anchor="middle" font-family="Outfit">${dayLabel(TIMES[i0])}</text>`;i0=i;}}
+  b.hours.forEach((x,i)=>{const e=evaluate(b,x);const bh=((x.he||0)/maxH)*(H-top-bot);
+    g+=`<rect x="${i*bw+0.4}" y="${H-bot-bh}" width="${Math.max(0.8,bw-0.8)}" height="${bh}" rx="1" fill="${COLORS[e.cls]}" opacity="${i===idx?1:.8}"><title>${whenLabel(TIMES[i])}: ${fmt(x.he)} m, ${LABELS[e.cls]}</title></rect>`;});
+  b.hours.forEach((x,i)=>{const hh=parseT(TIMES[i]).getHours();if(hh%6!==3||x.wd==null)return;const cx=i*bw+bw/2,cy=H-28;const w=windType(b,x.wd,x.ws);const col=w.k==="terral"?"#86efac":w.k==="mar"?"#fca5a5":"#cfe8f5";
+    g+=`<g transform="translate(${cx} ${cy}) rotate(${x.wd+180})"><path d="M0 -8 L5 6 L0 3 L-5 6 Z" fill="${col}"/></g>`;
+    if(hh===9||hh===15)g+=`<text x="${cx}" y="${H-4}" fill="#cfe8f5" font-size="12.5" text-anchor="middle" font-family="Outfit">${Math.round(x.ws)}</text>`;});
+  g+=`<rect x="${idx*bw-1}" y="${top-2}" width="${bw+2}" height="${H-top-bot+4}" fill="none" stroke="#fff" stroke-width="2" rx="2"/>`;
+  g+=`<text x="4" y="${top+14}" fill="#cfe8f5" font-size="13" font-family="Outfit">${fmt(maxH/1.1,1)} m</text>`;
+  return `<svg class="chart" id="chartSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico de altura de ola y viento de los próximos 7 días en ${b.name}">${g}</svg>`;
 }
 
 // ================= Mapa =================
@@ -461,58 +530,96 @@ function initMap(){
   map.fitBounds(L.latLngBounds(BEACHES.map(b=>[b.mlat,b.mlon])),{padding:[24,24]});
   map.on("zoomend",()=>{if(DATA)updateMap();});
   BEACHES.forEach(b=>{const m=L.marker([b.mlat,b.mlon],{icon:L.divIcon({className:"",html:"",iconSize:[36,36],iconAnchor:[18,18]})}).addTo(map);
-    m.bindTooltip(b.name,{direction:"top",offset:[0,-16],className:"tt"});m.on("click",()=>{selectBeach(b.id);map.flyTo([b.mlat,b.mlon],Math.max(map.getZoom(),11),{duration:0.8});});markers[b.id]=m;});
+    m.on("click",()=>{selectBeach(b.id);map.flyTo([b.mlat,b.mlon],Math.max(map.getZoom(),11),{duration:0.8});});markers[b.id]=m;});
 }
 function updateMap(){
   if(!map)return;
-  DATA.forEach(b=>{const x=b.hours[idx],e=evaluate(b,x),sel=b.id===selId;const m=markers[b.id];
-    const small=map.getZoom()<10&&!sel;
+  DATA.forEach(b=>{const x=b.hours[idx],e=evaluate(b,x),sel=b.id===selId;const m=markers[b.id];if(!m)return;
+    const small=map.getZoom()<10&&!sel;const tip=`${b.name} · ${LABELS[e.cls]} · ${fmt(x.he)} m`;
     m.setIcon(small?L.divIcon({className:"",html:`<div class="mk mini" style="--c:${COLORS[e.cls]}"></div>`,iconSize:[16,16],iconAnchor:[8,8]})
-      :L.divIcon({className:"",html:`<div class="mk ${sel?"sel":""}" style="--c:${COLORS[e.cls]}">${fmt(x.h)}</div>`,iconSize:[36,36],iconAnchor:[18,18]}));
+      :L.divIcon({className:"",html:`<div class="mk ${sel?"sel":""}" style="--c:${COLORS[e.cls]}">${fmt(x.he)}</div>`,iconSize:[36,36],iconAnchor:[18,18]}));
     m.setZIndexOffset(sel?1000:0);
-    if(sel){m.unbindTooltip();m.bindTooltip(b.name,{direction:"top",offset:[0,-22],className:"tt",permanent:true}).openTooltip();}
-    else if(m.getTooltip()&&m.getTooltip().options.permanent){m.unbindTooltip();m.bindTooltip(b.name,{direction:"top",offset:[0,-16],className:"tt"});}
+    const el=m.getElement();if(el){el.setAttribute("aria-label",tip);el.setAttribute("role","button");}
+    const perm=!!(m.getTooltip()&&m.getTooltip().options.permanent);
+    if(sel!==perm||!m.getTooltip()){m.unbindTooltip();m.bindTooltip(tip,sel?{direction:"top",offset:[0,-22],className:"tt",permanent:true}:{direction:"top",offset:[0,-16],className:"tt"});if(sel)m.openTooltip();}
+    else m.setTooltipContent(tip);
   });
 }
 function selectBeach(id){selId=id;try{localStorage.setItem("olasuy-beach",id);history.replaceState(null,"","#"+id);}catch(e){}
   render();const chip=document.querySelector(`.bchip[data-id="${id}"]`);chip&&chip.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});}
 
 // ================= Render =================
+// Mejor ventana de 3 horas con luz en un día (índices de TIMES)
+function bestWindow(b,list){let best=null;
+  for(let a=0;a<list.length;a++){const win=[list[a]];for(let k=1;k<3&&a+k<list.length&&list[a+k]===list[a]+k;k++)win.push(list[a+k]);
+    const sc=win.map(i=>evaluate(b,b.hours[i]));if(sc.some(e=>e.cls==="peligro"))continue;
+    const avg=sc.reduce((t,e)=>t+e.score,0)/sc.length;if(!best||avg>best.avg+0.05)best={avg,win,top:win[sc.indexOf(sc.reduce((p,c)=>c.score>p.score?c:p))]};}
+  return best;}
+function renderDays(b){
+  const days=[];TIMES.forEach((t,i)=>{const ds=t.slice(0,10);let d=days[days.length-1];if(!d||d.ds!==ds){d={ds,i,all:[]};days.push(d);}d.all.push(i);});
+  return days.slice(0,7).map(d=>{const lbl=dayLabel(TIMES[d.i]);const light=d.all.filter(i=>isDay(b,i));
+    if(!light.length)return `<div class="day night"><b>${lbl}</b><span class="w">Ya es de noche</span><span></span></div>`;
+    const w=bestWindow(b,light);
+    if(!w){const i=light[0];return `<button class="day" data-i="${i}"><b>${lbl}</b><span class="w">Mar peligroso todo el día</span><span class="r" style="background:${COLORS.peligro}">${LABELS.peligro}</span></button>`;}
+    const x=b.hours[w.top],e=evaluate(b,x),h0=parseT(TIMES[w.win[0]]).getHours(),h1=parseT(TIMES[w.win[w.win.length-1]]).getHours()+1;
+    // ¿hay otra playa claramente mejor ese día?
+    let alt=null;DATA.forEach(o=>{if(o.id===b.id)return;const ow=bestWindow(o,d.all.filter(i=>isDay(o,i)));if(ow&&ow.avg>=w.avg+1.5&&(!alt||ow.avg>alt.w.avg))alt={o,w:ow};});
+    const altTxt=alt?`<br>Mejor en la costa: <em>${alt.o.name}</em> (${LABELS[evaluate(alt.o,alt.o.hours[alt.w.top]).cls].toLowerCase()})`:"";
+    const on=d.all.includes(idx)?" on":"";
+    return `<button class="day${on}" data-i="${w.top}"><b>${lbl}</b><span class="w"><em>${h0}–${h1} h</em> · ${fmt(x.he)} m · ${Math.round(x.p||0)} s · viento ${e.w.txt.toLowerCase()}${altTxt}</span><span class="r" style="background:${COLORS[e.cls]}">${LABELS[e.cls]}</span></button>`;}).join("");
+}
 function render(){
   if(!DATA)return;
-  document.getElementById("when").textContent=whenLabel(TIMES[idx]);document.getElementById("slider").value=idx;
-  // chips de playas
-  document.getElementById("beaches").innerHTML=DATA.map(b=>{const e=evaluate(b,b.hours[idx]);return `<button class="bchip ${b.id===selId?"on":""}" data-id="${b.id}"><i style="background:${COLORS[e.cls]}"></i>${b.name}</button>`;}).join("");
+  const sl=document.getElementById("slider");sl.max=TIMES.length-1;sl.value=idx;
+  document.getElementById("when").textContent=whenLabel(TIMES[idx]);
+  // chips de playas (favoritas primero)
+  const order=[...DATA.filter(b=>FAVS.has(b.id)),...DATA.filter(b=>!FAVS.has(b.id))];
+  document.getElementById("beaches").innerHTML=order.map(b=>{const x=b.hours[idx],e=evaluate(b,x);return `<button class="bchip ${b.id===selId?"on":""}" data-id="${b.id}" aria-label="${b.name}: ${LABELS[e.cls]}, ${fmt(x.he)} metros" title="${LABELS[e.cls]} · ${fmt(x.he)} m"><i style="background:${COLORS[e.cls]}"></i>${FAVS.has(b.id)?"★ ":""}${b.name}</button>`;}).join("");
   updateMap();
-  // mejor playa
-  const items=DATA.map(b=>({b,x:b.hours[idx],e:evaluate(b,b.hours[idx])}));
-  const best=[...items].filter(o=>o.e.cls!=="peligro").sort((a,c)=>c.e.score-a.e.score)[0];
-  document.getElementById("best").innerHTML=best&&best.e.score>=3
-    ?`<div class="best" data-go="${best.b.id}"><div class="trophy">🏄</div><div><div class="k">Mejor playa para surfear a esta hora</div><div class="n">${best.b.name} <span style="color:${COLORS[best.e.cls]}">· ${LABELS[best.e.cls]}</span></div><div class="s">${fmt(best.x.h)} m (${humanSize(best.x.h).toLowerCase()}) · ${Math.round(best.x.p||0)} s · viento ${best.e.w.txt.toLowerCase()}</div></div></div>`
-    :`<div class="best"><div class="trophy">😴</div><div><div class="k">A esta hora</div><div class="n">Poca ola en toda la costa</div><div class="s">Probá con otro día o mirá el gráfico de cada playa.</div></div></div>`;
-  // panel de la playa elegida
   const b=beach(),x=b.hours[idx],e=evaluate(b,x),ty=waveType(b,x,e),col=COLORS[e.cls];
+  // amanecer / atardecer
+  const[sr,ss]=sunFor(b,TIMES[idx].slice(0,10));document.getElementById("sun").textContent=`☀️ ${dayLabel(TIMES[idx])} en ${b.name}: amanece ${hhmm(sr)} · atardece ${hhmm(ss)}`;
+  // mejor playa (solo con luz de día)
+  const bestAt=i=>DATA.map(o=>({b:o,i,x:o.hours[i],e:evaluate(o,o.hours[i])})).filter(o=>o.e.cls!=="peligro"&&isDay(o.b,o.i)).sort((a,c)=>c.e.score-a.e.score)[0];
+  const card=(o,k)=>`<div class="best" data-go="${o.b.id}" data-i="${o.i}"><div class="trophy">🏄</div><div><div class="k">${k}</div><div class="n">${o.b.name} <span style="color:${COLORS[o.e.cls]}">· ${LABELS[o.e.cls]}</span></div><div class="s">${o.i!==idx?whenLabel(TIMES[o.i])+" · ":""}${fmt(o.x.he)} m (${humanSize(o.x.he).toLowerCase()}) · ${Math.round(o.x.p||0)} s · viento ${o.e.w.txt.toLowerCase()}</div></div></div>`;
+  let bestHtml;
+  if(!isDay(b,idx)){let j=idx;while(j<TIMES.length&&!isDay(b,j))j++;const o=j<TIMES.length?bestAt(j):null;
+    bestHtml=o&&o.e.score>=3?card(o,`🌙 Es de noche · mejor playa al amanecer (${hhmm(sunFor(b,TIMES[j].slice(0,10))[0])})`)
+      :`<div class="best"${j<TIMES.length?` data-i="${j}"`:""}><div class="trophy">🌙</div><div><div class="k">Es de noche</div><div class="n">De noche no se surfea</div><div class="s">${j<TIMES.length?"Tocá para ir al amanecer ("+hhmm(sunFor(b,TIMES[j].slice(0,10))[0])+").":""}</div></div></div>`;}
+  else{const o=bestAt(idx);bestHtml=o&&o.e.score>=3?card(o,"Mejor playa para surfear a esta hora")
+    :`<div class="best"><div class="trophy">😴</div><div><div class="k">A esta hora</div><div class="n">Poca ola en toda la costa</div><div class="s">Mirá "Próximos días" para encontrar el mejor momento.</div></div></div>`;}
+  document.getElementById("best").innerHTML=bestHtml;
+  // panel de la playa elegida
   const wcol=e.w.k==="terral"?"#86efac":e.w.k==="mar"?"#fca5a5":"#cfe8f5";
   document.getElementById("pName").textContent=b.name;document.getElementById("pZone").textContent=b.zone;
+  const fav=document.getElementById("pFav"),isF=FAVS.has(b.id);fav.textContent=isF?"★":"☆";fav.setAttribute("aria-pressed",isF);fav.setAttribute("aria-label",isF?"Quitar de favoritas":"Marcar como favorita");
   const pill=document.getElementById("pPill");pill.textContent=LABELS[e.cls];pill.style.background=col;
   document.getElementById("pType").textContent=ty.t;document.getElementById("pTypeD").textContent=ty.d;
-  document.getElementById("pH").textContent=fmt(x.h)+" m";document.getElementById("pHuman").textContent=humanSize(x.h);
+  document.getElementById("pH").textContent=fmt(x.he)+" m";document.getElementById("pHuman").textContent=humanSize(x.he);
+  heroCv.setAttribute("aria-label",`Animación: ${ty.t.toLowerCase()} de ${fmt(x.he)} metros junto a una persona de 1,70 m. Viento ${e.w.txt.toLowerCase()} de ${Math.round(x.ws??0)} km/h.`);
   const sw=document.getElementById("pSwim");sw.textContent=e.swim.t;sw.style.background=e.swim.c;sw.style.color=e.swim.f;
   document.getElementById("pStats").innerHTML=`
     <div class="st"><div class="l">Período</div><div class="v">${fmt(x.p,0)} s</div><div class="d">${periodTxt(x.p)}</div></div>
-    <div class="st"><div class="l">Viento</div><div class="v">${arrowSVG(x.wd,wcol)}${Math.round(x.ws??0)}<small style="font-size:11px;font-weight:500">km/h</small></div><div class="d" style="color:${wcol}">${e.w.txt}${x.wd!=null?" · del "+card16(x.wd):""}</div></div>
-    <div class="st"><div class="l">Ola viene del</div><div class="v">${arrowSVG(x.d)}${card16(x.d)}</div><div class="d">${x.sst!=null?"Agua "+fmt(x.sst,0)+" °C":"&nbsp;"}</div></div>`;
+    <div class="st"><div class="l">Viento</div><div class="v">${arrowSVG(x.wd,wcol)}${Math.round(x.ws??0)}<small style="font-size:12px;font-weight:500">km/h</small></div><div class="d" style="color:${wcol}">${e.w.txt}${x.wd!=null?" · del "+card16(x.wd):""}</div></div>
+    <div class="st"><div class="l">Ola viene del</div><div class="v">${arrowSVG(x.sd??x.d)}${card16(x.sd??x.d)}</div><div class="d">${x.sst!=null?"Agua "+fmt(x.sst,0)+" °C":"&nbsp;"}</div></div>`;
   const stars="★".repeat(Math.round(e.score/2))+"☆".repeat(5-Math.round(e.score/2));
+  const ex=Math.round(expo(b,x.sd??x.d)*100);
   document.getElementById("pExpert").innerHTML=`<h4>Detalle técnico</h4><div class="stats" style="padding:0">
     <div class="st"><div class="l">Mar de fondo</div><div class="v">${fmt(x.sh)} m</div><div class="d">${fmt(x.sp,0)} s · del ${card16(x.sd)}</div></div>
-    <div class="st"><div class="l">Mar de viento</div><div class="v">${fmt(x.wh)} m</div><div class="d">${fmt(x.wp,0)} s</div></div>
-    <div class="st"><div class="l">Ráfagas</div><div class="v">${Math.round(x.wg??0)}<small style="font-size:11px;font-weight:500">km/h</small></div><div class="d">Dir. ola ${x.d!=null?Math.round(x.d)+"°":"—"}</div></div></div>
+    <div class="st"><div class="l">Mar de viento</div><div class="v">${fmt(x.wh)} m</div><div class="d">${fmt(x.wp,0)} s · del ${card16(x.wwd)}</div></div>
+    <div class="st"><div class="l">Ráfagas</div><div class="v">${Math.round(x.wg??0)}<small style="font-size:12px;font-weight:500">km/h</small></div><div class="d">Dir. ola ${x.d!=null?Math.round(x.d)+"°":"—"}</div></div>
+    <div class="st"><div class="l">Mar adentro</div><div class="v">${fmt(x.h)} m</div><div class="d">Altura total del modelo</div></div>
+    <div class="st"><div class="l">Exposición</div><div class="v">${ex}%</div><div class="d">La playa mira al ${card16(b.facing)} (${b.facing}°)</div></div>
+    <div class="st"><div class="l">En la playa</div><div class="v">${fmt(x.he)} m</div><div class="d">Lo que llega a la orilla</div></div></div>
     <div style="font-size:13px;color:var(--mut);margin-top:8px">Puntaje de surf: <span style="color:#fde68a;letter-spacing:1px">${stars}</span> ${fmt(e.score,1)}/10</div>`;
+  document.getElementById("pDays").innerHTML=renderDays(b);
   document.getElementById("pChart").innerHTML=chartSVG(b);
-  const rows=b.hours.map((y,i)=>{if(i%3!==0&&i!==idx)return"";const ee=evaluate(b,y);
-    return `<tr class="${i===idx?"sel":""}"><td>${whenLabel(TIMES[i]).replace("Mañana","Mañ.")}</td><td><b style="color:${COLORS[ee.cls]}">${fmt(y.h)}</b></td><td>${fmt(y.p,0)} s</td><td>${card16(y.d)}</td><td class="expert-only">${fmt(y.sh)} m · ${fmt(y.sp,0)} s</td><td>${Math.round(y.ws??0)} ${card16(y.wd)}</td><td class="expert-only">${Math.round(y.wg??0)}</td></tr>`;}).join("");
-  document.getElementById("pTable").innerHTML=`<table class="tbl"><thead><tr><th>Hora</th><th>Ola m</th><th>Per.</th><th>Dir.</th><th class="expert-only">Fondo</th><th>Viento km/h</th><th class="expert-only">Ráf.</th></tr></thead><tbody>${rows}</tbody></table>`;
-  heroCfg={h:x.h||0,p:x.p||8,ws:x.ws||0,wk:e.w.k,type:ty};
+  // tabla: horas con luz del día elegido (y la hora elegida aunque sea de noche)
+  const ds=TIMES[idx].slice(0,10);document.getElementById("pTableH").textContent="Hora por hora · "+dayLabel(TIMES[idx]);
+  const rows=b.hours.map((y,i)=>{if(TIMES[i].slice(0,10)!==ds||(!isDay(b,i)&&i!==idx))return"";const ee=evaluate(b,y);
+    return `<tr class="${i===idx?"sel":""}" data-i="${i}" style="cursor:pointer"><td>${pad(parseT(TIMES[i]).getHours())}:00</td><td><b style="color:${COLORS[ee.cls]}">${fmt(y.he)}</b> <small style="color:var(--mut)">${LABELS[ee.cls]}</small></td><td>${fmt(y.p,0)} s</td><td>${card16(y.sd??y.d)}</td><td class="expert-only">${fmt(y.h)} m</td><td class="expert-only">${fmt(y.sh)} m · ${fmt(y.sp,0)} s</td><td>${Math.round(y.ws??0)} ${card16(y.wd)}</td><td class="expert-only">${Math.round(y.wg??0)}</td></tr>`;}).join("");
+  document.getElementById("pTable").innerHTML=`<table class="tbl"><thead><tr><th>Hora</th><th>Ola m</th><th>Per.</th><th>Dir.</th><th class="expert-only">Afuera</th><th class="expert-only">Fondo</th><th>Viento km/h</th><th class="expert-only">Ráf.</th></tr></thead><tbody>${rows}</tbody></table>`;
+  heroCfg={h:x.he||0,p:x.p||8,ws:x.ws||0,wk:e.w.k,type:ty};
 }
 function renderChips(){
   const chips=[{t:"Ahora",i:0}];
@@ -521,50 +628,93 @@ function renderChips(){
 }
 
 // ================= Datos =================
-const HOURLY_M="wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,wind_wave_height,wind_wave_period,sea_surface_temperature";
+// FULL = pronóstico completo (todas las horas); DATA/TIMES = la vista desde la hora actual de Uruguay, 7 días.
+const HOURLY_M="wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,wind_wave_height,wind_wave_direction,wind_wave_period,sea_surface_temperature";
 const HOURLY_W="wind_speed_10m,wind_direction_10m,wind_gusts_10m";
-async function getJSON(url){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),9000);
-  try{const r=await fetch(url,{signal:ctl.signal});if(!r.ok)throw new Error(r.status);return await r.json();}finally{clearTimeout(to);}}
+const VIEW_H=168,CACHE_KEY="olasuy-cache",REFRESH_MS=30*60e3;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function getJSON(url,tries=3){
+  for(let k=0;;k++){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),10000);
+    try{const r=await fetch(url,{signal:ctl.signal});if(!r.ok)throw new Error(r.status);return await r.json();}
+    catch(e){if(k>=tries-1)throw e;await sleep(1500*(k+1));}finally{clearTimeout(to);}}}
 async function loadLive(){
   const lat=BEACHES.map(b=>b.lat).join(","),lon=BEACHES.map(b=>b.lon).join(",");
-  const q=`latitude=${lat}&longitude=${lon}&timezone=America%2FMontevideo&forecast_days=4`;
-  const[m,w]=await Promise.all([getJSON(`https://marine-api.open-meteo.com/v1/marine?${q}&hourly=${HOURLY_M}`),getJSON(`https://api.open-meteo.com/v1/forecast?${q}&hourly=${HOURLY_W}`)]);
-  const M=Array.isArray(m)?m:[m],Wd=Array.isArray(w)?w:[w];const allT=M[0].hourly.time;
-  const now=new Date();let start=allT.findIndex(t=>parseT(t)>=new Date(now.getFullYear(),now.getMonth(),now.getDate(),now.getHours()));if(start<0)start=0;
-  TIMES=allT.slice(start,start+72);
-  return BEACHES.map((b,k)=>{const mh=M[k].hourly,wh=Wd[k].hourly;
-    return{...b,hours:TIMES.map((t,j)=>{const i=start+j,wi=wh.time.indexOf(t);
+  const q=`latitude=${lat}&longitude=${lon}&timezone=America%2FMontevideo&forecast_days=8`;
+  const[m,w]=await Promise.all([getJSON(`https://marine-api.open-meteo.com/v1/marine?${q}&hourly=${HOURLY_M}`),getJSON(`https://api.open-meteo.com/v1/forecast?${q}&hourly=${HOURLY_W}&daily=sunrise,sunset`)]);
+  const M=Array.isArray(m)?m:[m],Wd=Array.isArray(w)?w:[w];const times=M[0].hourly.time;const sun={};
+  const toH=t=>{const d=parseT(t);return d.getHours()+d.getMinutes()/60;};
+  const beaches=BEACHES.map((b,k)=>{const mh=M[k].hourly,wh=Wd[k].hourly,dl=Wd[k].daily;
+    if(dl&&dl.time){sun[b.id]={};dl.time.forEach((ds,j)=>{if(dl.sunrise[j]&&dl.sunset[j])sun[b.id][ds]=[toH(dl.sunrise[j]),toH(dl.sunset[j])];});}
+    const v=(a,i)=>a?a[i]:null;
+    return{id:b.id,hours:times.map((t,i)=>{const wi=wh.time.indexOf(t);
       return{h:mh.wave_height[i],d:mh.wave_direction[i],p:mh.wave_period[i],sh:mh.swell_wave_height[i],sd:mh.swell_wave_direction[i],sp:mh.swell_wave_period[i],
-        wh:mh.wind_wave_height[i],wp:mh.wind_wave_period[i],sst:mh.sea_surface_temperature?mh.sea_surface_temperature[i]:null,
+        wh:mh.wind_wave_height[i],wwd:v(mh.wind_wave_direction,i),wp:mh.wind_wave_period[i],sst:v(mh.sea_surface_temperature,i),
         ws:wi>=0?wh.wind_speed_10m[wi]:null,wd:wi>=0?wh.wind_direction_10m[wi]:null,wg:wi>=0?wh.wind_gusts_10m[wi]:null};})};});
+  return{src:"live",at:Date.now(),times,sun,beaches};
 }
 function loadDemo(){
-  const now=new Date();now.setMinutes(0,0,0);
-  TIMES=Array.from({length:72},(_,i)=>{const d=new Date(now.getTime()+i*3600e3);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}T${String(d.getHours()).padStart(2,"0")}:00`;});
-  const f={pocitos:.25,solymar:.3,pinar:.32,bello:.4,cuchilla:.42,piria:.45,brava:1,montoya:.95,jose:.9,aguada:1.05,pedrera:1.15,polonio:1.1,diablo:1.2,teresa:1.1};
-  return BEACHES.map((b,k)=>({...b,hours:TIMES.map((t,i)=>{const sw=1.1+0.7*Math.sin(i/14)+0.25*Math.sin(i/5+k);const h=Math.max(0.1,sw*f[b.id]);
+  const now=nowUY();now.setMinutes(0,0,0);
+  const times=Array.from({length:VIEW_H},(_,i)=>tStr(new Date(now.getTime()+i*3600e3)));
+  const f={kiyu:.25,pocitos:.25,solymar:.3,pinar:.32,bello:.4,cuchilla:.42,pnegra:.5,piria:.45,emir:.9,brava:1,montoya:.95,jose:.9,balconada:1.1,botes:.8,aguada:1.05,pedrera:1.15,rubia:1.1,polonio:1.1,valizas:1.15,diablo:1.2,teresa:1.1};
+  return{src:"demo",at:Date.now(),times,sun:{},beaches:BEACHES.map((b,k)=>({id:b.id,hours:times.map((t,i)=>{const sw=1.1+0.7*Math.sin(i/14)+0.25*Math.sin(i/5+k);const h=Math.max(0.1,sw*(f[b.id]??.8));
     const wd=(330+i*5+k*3)%360,ws=8+14*Math.abs(Math.sin(i/9+0.4))+(i%24>13&&i%24<19?8:0);
-    return{h,d:140+20*Math.sin(i/20),p:8.5+4*Math.sin(i/18),sh:h*0.7,sd:150,sp:9.5+3*Math.sin(i/18),wh:h*0.45,wp:4.5,sst:17.5,ws,wd,wg:ws*1.45};})}));
+    return{h,d:140+20*Math.sin(i/20),p:8.5+4*Math.sin(i/18),sh:h*0.8,sd:150,sp:9.5+3*Math.sin(i/18),wh:h*0.45,wwd:wd,wp:4.5,sst:17.5,ws,wd,wg:ws*1.45};})}))};
 }
+// Guarda el último pronóstico real para mostrarlo si después no hay conexión (ej. en la playa sin señal)
+function saveCache(F){try{localStorage.setItem(CACHE_KEY,JSON.stringify(F,(k,v)=>typeof v==="number"&&!Number.isInteger(v)?Math.round(v*100)/100:v));}catch(e){}}
+function loadCache(){try{const F=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(!F||!F.times||!F.beaches)return null;F.src="cache";return F;}catch(e){return null;}}
+// Arma la vista desde la hora actual de Uruguay. Devuelve false si el pronóstico ya quedó todo en el pasado.
+function buildView(){
+  const cur=tStr(nowUY());const start=FULL.times.findIndex(t=>t>=cur);if(start<0||FULL.times.length-start<12)return false;
+  TIMES=FULL.times.slice(start,start+VIEW_H);
+  DATA=BEACHES.map(b=>{const c=FULL.beaches.find(x=>x.id===b.id);if(!c)return null;
+    return{...b,hours:c.hours.slice(start,start+VIEW_H).map(x=>({...x,he:effHeight(b,x)}))};}).filter(Boolean);
+  return true;}
+const ago=ms=>{const m=Math.round(ms/60000);return m<2?"un momento":m<60?`${m} min`:m<48*60?`${Math.round(m/60)} h`:`${Math.round(m/1440)} días`;};
+const clockUY=ms=>new Date(ms).toLocaleTimeString("es-UY",{hour:"2-digit",minute:"2-digit",hourCycle:"h23",timeZone:TZ});
+function renderBanner(){const el=document.getElementById("banner");
+  if(FULL.src==="live")el.innerHTML=`<div class="banner live">Pronóstico en vivo de Open-Meteo · actualizado a las ${clockUY(FULL.at)}. Se actualiza solo.</div>`;
+  else if(FULL.src==="cache")el.innerHTML=`<div class="banner cache"><b>Sin conexión:</b> mostrando el último pronóstico guardado, de hace ${ago(Date.now()-FULL.at)}. Se actualiza solo cuando vuelva internet.</div>`;
+  else el.innerHTML=`<div class="banner demo"><b>Vista previa con datos de EJEMPLO (no reales).</b> No se pudo conectar con Open-Meteo y no hay un pronóstico guardado. Se va a reintentar solo.</div>`;}
+// Cambia de datos manteniendo la hora que estaba mirando el usuario (o "ahora" si estaba en ahora)
+function applyView(){const prev=idx>0?TIMES[idx]:null;
+  if(!buildView()){FULL=loadDemo();buildView();}
+  const j=prev?TIMES.indexOf(prev):0;idx=j<0?0:j;
+  if(!DATA.some(b=>b.id===selId))selId=DATA[0].id;
+  renderBanner();renderChips();render();}
+let busy=false,lastTry=0;
+async function refresh(){if(busy)return;busy=true;lastTry=Date.now();
+  try{const F=await loadLive();FULL=F;saveCache(F);}
+  catch(e){if(FULL&&FULL.src==="live")FULL.src="cache";}
+  finally{busy=false;}
+  applyView();}
+// Cada minuto (y al volver a la pestaña): si cambió la hora, corre "ahora"; si los datos son viejos, los vuelve a pedir
+function tick(){if(document.hidden||!FULL)return;
+  const old=FULL.src==="live"?Date.now()-FULL.at>REFRESH_MS:Date.now()-lastTry>2*60e3;
+  if(old)refresh();else if(TIMES[0]!==tStr(nowUY()))applyView();else if(FULL.src==="cache")renderBanner();}
 async function init(){
   initMap();
-  const banner=document.getElementById("banner");
-  try{DATA=await loadLive();banner.innerHTML=`<div class="banner live">Pronóstico en vivo de Open-Meteo · actualizado ${new Date().toLocaleTimeString("es-UY",{hour:"2-digit",minute:"2-digit"})}</div>`;}
-  catch(e){DATA=loadDemo();banner.innerHTML=`<div class="banner demo"><b>Vista previa con datos de EJEMPLO (no reales).</b> No se pudo conectar con Open-Meteo. Abrí la versión publicada en GitHub para ver el pronóstico real.</div>`;}
-  if(!DATA.some(b=>b.id===selId))selId=DATA[0].id;
-  idx=0;renderChips();render();[heroW,heroH]=sizeCanvas(heroCv,hc);
+  lastTry=Date.now();
+  try{FULL=await loadLive();saveCache(FULL);}
+  catch(e){FULL=loadCache();if(!FULL||!buildView())FULL=loadDemo();}
+  idx=0;applyView();[heroW,heroH]=sizeCanvas(heroCv,hc);
+  setInterval(tick,60e3);document.addEventListener("visibilitychange",tick);window.addEventListener("online",()=>{lastTry=0;tick();});
 }
 
 // ================= Eventos =================
 document.getElementById("slider").addEventListener("input",e=>{idx=+e.target.value;render();});
 document.getElementById("chips").addEventListener("click",e=>{const c=e.target.closest(".chip");if(c){idx=+c.dataset.i;render();}});
 document.getElementById("beaches").addEventListener("click",e=>{const c=e.target.closest(".bchip");if(c)selectBeach(c.dataset.id);});
-document.getElementById("best").addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b){selectBeach(b.dataset.go);if(map){const B=BEACHES.find(x=>x.id===b.dataset.go);map.panTo([B.mlat,B.mlon]);}}});
+document.getElementById("best").addEventListener("click",e=>{const c=e.target.closest(".best");if(!c)return;if(c.dataset.i!=null)idx=+c.dataset.i;
+  if(c.dataset.go){selectBeach(c.dataset.go);if(map){const B=BEACHES.find(x=>x.id===c.dataset.go);map.panTo([B.mlat,B.mlon]);}}else render();});
+document.getElementById("pDays").addEventListener("click",e=>{const d=e.target.closest("button.day");if(d){idx=+d.dataset.i;render();}});
+document.getElementById("pTable").addEventListener("click",e=>{const r=e.target.closest("tr[data-i]");if(r){idx=+r.dataset.i;render();}});
+document.getElementById("pFav").addEventListener("click",()=>{FAVS.has(selId)?FAVS.delete(selId):FAVS.add(selId);try{localStorage.setItem("olasuy-favs",JSON.stringify([...FAVS]))}catch(e){}render();});
 document.getElementById("pChart").addEventListener("click",e=>{const ch=e.target.closest("svg");if(!ch)return;const r=ch.getBoundingClientRect();idx=clamp(Math.floor((e.clientX-r.left)/r.width*TIMES.length),0,TIMES.length-1);render();});
 document.getElementById("simBtn").addEventListener("click",openSim);
 document.getElementById("simClose").addEventListener("click",closeSim);
 document.getElementById("speeds").addEventListener("click",e=>{const bt=e.target.closest("button");if(!bt||!SIM)return;SIM.speed=+bt.dataset.s;document.querySelectorAll("#speeds button").forEach(x=>x.classList.toggle("on",x===bt));});
-window.addEventListener("resize",()=>{[heroW,heroH]=sizeCanvas(heroCv,hc);if(SIM)[simW,simH]=sizeCanvas(simCv,sc);});
+window.addEventListener("resize",()=>{[heroW,heroH]=sizeCanvas(heroCv,hc);heroStatic=null;if(SIM)[simW,simH]=sizeCanvas(simCv,sc);});
 window.addEventListener("keydown",e=>{if(e.key==="Escape"&&SIM)closeSim();});
 function setMode(x){document.body.classList.toggle("expert",x);document.getElementById("mExpert").classList.toggle("on",x);document.getElementById("mSimple").classList.toggle("on",!x);try{localStorage.setItem("olasuy-mode",x?"1":"0")}catch(e){}}
 document.getElementById("mSimple").onclick=()=>setMode(false);document.getElementById("mExpert").onclick=()=>setMode(true);

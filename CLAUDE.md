@@ -2,14 +2,19 @@
 
 Herramienta web de pronóstico de olas para playas de Uruguay, pensada para surfistas expertos y para usuarios comunes. Interfaz en español rioplatense (voseo: "tocá", "deslizá").
 
-Publicada con GitHub Pages: https://matiasmoranc.github.io/olas-uy/ (rama `main`, carpeta raíz). Cada push a `main` se publica solo en 1–2 minutos.
+Publicada con GitHub Pages en el dominio propio **https://olas.uy** (archivo `CNAME`; rama `main`, carpeta raíz). Cada push a `main` se publica solo en 1–2 minutos. El dominio está registrado en Hosting Montevideo; su DNS apunta a GitHub Pages (registros A de `@` a 185.199.108.153, .109.153, .110.153 y .111.153, y CNAME de `www` a `matiasmoranc.github.io`).
 
 ## Estructura
 
 Todo está en un solo archivo, `index.html` (HTML + CSS + JS, sin build ni dependencias locales):
 
-- **BEACHES**: lista de playas. `lat/lon` = punto en el mar para pedir el pronóstico (un poco mar adentro para que el modelo marino tenga datos); `mlat/mlon` = posición del marcador en el mapa; `facing` = hacia dónde mira la playa en grados (se usa para saber si el viento es terral, cruzado o de mar).
-- **Datos en vivo**: Open-Meteo Marine API (altura, período, dirección de ola, mar de fondo, mar de viento, temperatura del agua) y Open-Meteo Forecast API (viento y ráfagas). Una sola llamada para todas las playas (coordenadas separadas por coma). Si falla, carga datos de EJEMPLO con un aviso amarillo.
+- **BEACHES**: lista de playas, de oeste a este. `lat/lon` = punto en el mar para pedir el pronóstico (un poco mar adentro para que el modelo marino tenga datos); `mlat/mlon` = posición del marcador en el mapa; `facing` = hacia dónde mira la playa en grados (se usa para saber si el viento es terral, cruzado o de mar).
+- **Datos en vivo**: Open-Meteo Marine API (altura, período, dirección de ola, mar de fondo, mar de viento, temperatura del agua) y Open-Meteo Forecast API (viento y ráfagas). Una sola llamada para todas las playas (coordenadas separadas por coma), 8 días; se muestran 7 desde la hora actual. Amanecer/atardecer de la API (`daily=sunrise,sunset`), con cálculo propio (`solar()`) si no hay. Reintenta 3 veces; si falla usa el último pronóstico guardado en `localStorage` (`olasuy-cache`, aviso azul) y, si no hay, datos de EJEMPLO (aviso amarillo). Se actualiza solo cada 30 min, al volver a la pestaña y al recuperar internet (`tick()`).
+- **Horario**: todo se calcula en hora de Uruguay (`nowUY()`), no en la del dispositivo.
+- **Próximos días** (`renderDays()`): mejor ventana de 3 h con luz por día. "Mejor playa" y la tabla ignoran las horas de noche.
+- **Favoritas**: estrella en el panel, guardadas en `olasuy-favs`, aparecen primero en la lista.
+- **Accesibilidad**: los colores de Bueno (verde) y Muy bueno (violeta) se distinguen; `aria-label` en marcadores, chips y canvas; con `prefers-reduced-motion` la ola se dibuja quieta.
+- **effHeight() / expo()**: altura de ola *en la playa* (`he`): el mar de fondo y el mar de viento se reducen según el ángulo entre su dirección y `facing`. Todo lo que muestra tamaño de ola usa `he`; `h` (mar adentro) solo se ve en modo Experto.
 - **evaluate()**: puntaje 0–10 y calificación (Plano, Malo, Regular, Bueno, Muy bueno, Peligroso) + indicador de baño.
 - **waveType()**: tipo de ola que define la animación: plano, espuma, formada, tubo, picado, bomba.
 - **drawHero()**: animación lateral en canvas de una ola con una persona de 1,70 m para escala. Debe ser simple y fluida (el usuario pidió explícitamente que se entienda fácil).
@@ -23,5 +28,5 @@ Abrir `index.html` en el navegador. Para ver datos reales hace falta internet (O
 
 ## Pendientes / ideas
 
-- Verificar coordenadas de Solymar, El Pinar, Bello Horizonte y Cuchilla Alta (se cargaron aproximadas).
+- Verificar coordenadas de Solymar, El Pinar, Bello Horizonte, Cuchilla Alta, Kiyú, Punta Negra, El Emir, La Balconada, Los Botes, Punta Rubia y Barra de Valizas (se cargaron aproximadas).
 - Ajustar `facing` de cada playa con conocimiento local.
