@@ -34,6 +34,16 @@ Ruteo por hash (`#inicio`, `#olas`, `#fotos`, `#sesion`, `#fotografo`, `#vender`
 - **Fotógrafo (`#fotografo`)**: perfil público con portada, avatar, números y sesiones.
 - **Vender (`#vender`)**: asistente en 3 pasos (subir fotos con vista previa de la marca de agua → dónde y cuándo → precio con +/− y "te quedan $X") y conexión con Mercado Pago.
 
+## Servidor (en construcción)
+
+- **Supabase** (base de datos Postgres + cuentas con Google) + **Cloudflare R2** (fotos) + **Mercado Pago marketplace** (cobros). Guía para crear las cuentas: `docs/PUESTA-EN-MARCHA.md`.
+- `supabase/migrations/`: esquema con RLS. Tablas públicas `photographers`, `sessions`, `photos`, `purchases`; **privadas** (sin políticas ni permisos para el navegador) `photo_originals` (dónde está la original) y `mp_accounts` (tokens OAuth de Mercado Pago de cada fotógrafo). Funciones `claim_purchases()` (al entrar, asocia compras hechas con ese mail) y `my_sales()` (ventas del fotógrafo sin mails de compradores). Probado contra Postgres 16 con 27 pruebas de permisos.
+- `supabase/functions/` (Deno): `r2-upload` (links firmados para subir directo a R2: original privada + previa con marca de agua + miniatura), `mp-connect` (OAuth del fotógrafo), `checkout` (preferencia de pago con `marketplace_fee` = `PLATFORM_FEE` 15%, opción A: el comprador paga el precio publicado), `mp-webhook` (verifica firma y consulta el pago; marca la orden pagada si el monto coincide), `download` (link firmado de 5 min a la original, válido `DOWNLOAD_DAYS` = 30 días desde la compra). `_shared/util.ts`: utilidades. Type-check: `deno check supabase/functions/*/index.ts`.
+- `.github/workflows/supabase.yml`: al cambiar `supabase/**` en `main`, aplica migraciones, carga claves y sube funciones. Si faltan los secrets, termina sin hacer nada.
+- Sitio: `config.js` (valores PÚBLICOS: URL de Supabase, clave anon, URL de fotos). Vacío = el sitio funciona como antes. Con datos: aparece "Entrar" (Google) y "Tus fotos" con descargas (`initAccounts()`).
+- Cobro como **particular** con cuenta personal de Mercado Pago al principio; pasar a unipersonal **Literal E** si crece (misma cuenta de MP, se le agrega el RUT).
+- Pendiente de conectar en el sitio: alta de fotógrafo, subida real en "Vender", búsqueda real en "Fotos" y compra real.
+
 ## Decisiones de producto
 
 - Pagos: **Mercado Pago dividido** (marketplace). El pago va directo al fotógrafo y olas.uy cobra **15%** de comisión automática.

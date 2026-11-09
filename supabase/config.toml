@@ -1,0 +1,13 @@
+# Configuración de Supabase para Olas UY.
+# Estas funciones las llaman Mercado Pago o un link directo (sin sesión del sitio),
+# por eso no exigen el token de Supabase. Cada una valida lo suyo por dentro.
+project_id = "olas-uy"
+
+[functions.mp-connect]
+verify_jwt = false
+
+[functions.mp-webhook]
+verify_jwt = false
+
+[functions.download]
+verify_jwt = false
