@@ -16,9 +16,9 @@ Todo está en `index.html` (HTML + CSS + JS, sin build).
 
 - **Pronóstico: datos REALES** de Open-Meteo (Marine API: altura, dirección y período de ola, mar de fondo, mar de viento; Forecast API: viento). Una sola llamada por API para todas las playas (coordenadas separadas por coma), 7 días, `timezone=America/Montevideo`. `SPOT` = punto en el mar donde se pide el pronóstico + `facing` de cada playa. `effH()`/`expo()` = altura en la playa según de dónde viene el mar; `windK()` = terral/calmo/cruzado/de mar; `score()` = puntaje 0–10; calificación `g` (0 Plano … 4 Muy bueno, 5 Peligroso si ola ≥ 3 m o viento ≥ 50 km/h). `build()` arma `FC` desde hoy 0:00 (hora de Uruguay, `nowUY()`), índice = día*24 + hora.
 - Arranque (`boot()`): muestra al instante el último pronóstico guardado (`localStorage` `olasuy-fc`) y actualiza en segundo plano; reintenta 3 veces. Sin conexión usa lo guardado ("Sin conexión · datos de las HH:MM"); si nunca cargó, datos de ejemplo (`sampleFC()`), avisado. Se actualiza solo cada 30 min, al volver a la pestaña y al recuperar internet. La fuente y la hora se ven al lado de la leyenda.
-- **Fotos, fotógrafos y ventas: todavía de EJEMPLO** (marcado con una etiqueta "Ejemplo"); las fotos se dibujan con canvas en `photo()`. Falta el servidor (ver Pendientes).
+- **Fotos, fotógrafos y ventas: REALES** desde Supabase/R2 cuando hay `config.js` (`isReal()`). Sin fotos todavía, se muestran rectángulos gris claro (`.skel`) donde van las fotos; **nunca fotos ficticias**. Las pantallas de ejemplo (`fotosDemo`, `sesionDemo`, `fotografoDemo`, `venderDemo`, fotos dibujadas con `photo()`) quedan solo para cuando no hay configuración.
 
-Ruteo por hash (`#inicio`, `#olas`, `#fotos`, `#sesion`, `#fotografo`, `#vender`); objeto `V` con una función por pantalla que devuelve `{url, title, sec, html, after}`. `url` es la dirección "para Google" que tendría cada pantalla en la versión real.
+Ruteo por hash (`#inicio`, `#olas`, `#fotos`, `#sesion=<id>`, `#fotografo=<slug>`, `#vender`, `#listo` con `?orden=`); el parámetro después de `=` queda en `S.arg`; objeto `V` con una función por pantalla que devuelve `{url, title, sec, html, after}`. `url` es la dirección "para Google" que tendría cada pantalla en la versión real.
 
 - **Diseño**: tema claro único ("espuma y arena"), tokens en `:root`; fuentes Bricolage Grotesque (títulos) + Outfit. Navegación con dock flotante abajo (Olas · Mis fotos · Vender). Transiciones con View Transitions; respeta `prefers-reduced-motion`.
 - **Inicio**: portada con olas animadas en canvas (`sea()`), mejor playa ahora, carrusel "Ahora" y "Recién subidas".
@@ -30,8 +30,10 @@ Ruteo por hash (`#inicio`, `#olas`, `#fotos`, `#sesion`, `#fotografo`, `#vender`
   - Tarjeta (`waveCard`): altura arriba a la derecha, "⭐ puntaje/10", período, viento (flecha verde terral / gris cruzado / roja de mar + km/h) y barritas de 24 h. Tocar o arrastrar las barritas, o tocar un día dentro de la tarjeta, cambia **solo esa playa** (`S.sel[playa]=[día,hora]`, `paintBeach()`) y aparece un botón "🕐 día · hora ✕" para volver a la hora general. La barra de hora y los días de arriba cambian todas las playas (y borran las horas propias). Al abrirla: mejor puntaje de cada uno de los 7 días y mejor hora del día.
   - `score()` replica el `evaluate()` real (tamaño × período ± viento).
   - Botón **▶ Simulación** en cada tarjeta (`openSim()`): pantalla completa con la ola animada de costado (`drawWave()`, en canvas) junto a una persona de 1,70 m para escala, a la hora y día de esa tarjeta. `waveType()` define la forma: plano, espuma, formada, tubo, picado o bomba (según altura, período y viento). Adentro hay días y barra de hora; cambiarlos actualiza también esa tarjeta (`S.sel`). Con `prefers-reduced-motion` se dibuja quieta.
-- **Fotos (`#fotos`, `#sesion`)**: "¿Dónde surfeaste?" (playas en círculos) + "¿Cuándo?" (días). En la sesión, barra de hora para encontrarse. Visor a pantalla completa con marca de agua y "Llevala en alta". La compra es una hoja que pide solo mail + Mercado Pago.
-- **Fotógrafo (`#fotografo`)**: perfil público con portada, avatar, números y sesiones.
+- **Fotos (`#fotos`, `#sesion=<id>`)**: "¿Dónde surfeaste?" (playas) + "¿Cuándo?" (últimos 7 días) → sesiones publicadas reales (`fetchSessions`, portada = primera miniatura). En la sesión (`fetchSession`): miniaturas por hora y barra de hora para encontrarse. Visor con la previa (marca de agua ya incluida). "Llevala en alta" → hoja con mail → función `checkout` → Mercado Pago. Caché `need()` de 60 s; `clearRC()` al publicar.
+- **Compra lista (`#listo?orden=`)**: consulta `download?orden=` cada 4 s hasta que el webhook confirma el pago; muestra las previas con "Descargar" (link firmado a la original).
+- **Inicio**: "Recién subidas" con las últimas sesiones reales (`recentReal()`).
+- **Fotógrafo (`#fotografo=<slug>`)**: perfil público real (nombre, zona, bio, cantidad de fotos y sesiones, sus sesiones).
 - **Vender (`#vender`)** — REAL cuando hay Supabase (`venderReal()`; sin configuración usa `venderDemo()`):
   - Sin sesión: "Entrar con Google". Sin perfil (`PH_ME===null`): alta de fotógrafo (nombre, zona, bio; `slug` único con reintento si choca).
   - Barra "Conectá Mercado Pago" (función `mp-connect`; al volver, `?mp=ok` muestra aviso). Publicar queda bloqueado sin MP conectado.
@@ -46,13 +48,13 @@ Ruteo por hash (`#inicio`, `#olas`, `#fotos`, `#sesion`, `#fotografo`, `#vender`
 - `.github/workflows/supabase.yml`: al cambiar `supabase/**` en `main`, aplica migraciones, carga claves y sube funciones. Si faltan los secrets, termina sin hacer nada.
 - Sitio: `config.js` (valores PÚBLICOS: URL de Supabase, clave anon, URL de fotos). Vacío = el sitio funciona como antes. Con datos: aparece "Entrar" (Google) y "Tus fotos" con descargas (`initAccounts()`).
 - Cobro como **particular** con cuenta personal de Mercado Pago al principio; pasar a unipersonal **Literal E** si crece (misma cuenta de MP, se le agrega el RUT).
-- Pendiente de conectar en el sitio: alta de fotógrafo, subida real en "Vender", búsqueda real en "Fotos" y compra real.
+- Pendiente: probar una compra real de punta a punta (3 cuentas distintas de MP: Olas UY, fotógrafo, comprador); mandar mail al comprador con el link; que el fotógrafo vea y borre sus sesiones; pasar a la API de Orders de MP cuando discontinúen Preferences.
 
 ## Decisiones de producto
 
 - Pagos: **Mercado Pago dividido** (marketplace). El pago va directo al fotógrafo y olas.uy cobra **15%** de comisión automática.
 - Búsqueda de fotos en v1: **playa + día + hora** (sin reconocimiento facial).
-- Stack previsto para la versión real: Cloudflare (Workers/Pages, R2 para fotos, D1 base de datos), que el usuario ya usa. Fotógrafos con login por mail (código, sin contraseña). Originales privados con link de descarga que vence.
+- Stack: Supabase (base de datos + login con Google) + Cloudflare R2 (fotos, `fotos.olas.uy`) + Mercado Pago. Originales privados con link de descarga que vence.
 - SEO: cada playa, día, fotógrafo y sesión con su propia URL (`/pronostico/la-pedrera`, `/fotos/la-pedrera/2026-11-09/usuario`, `/fotografos/nombre`), títulos, datos estructurados y sitemap.
 
 ## Cómo probar
@@ -61,5 +63,4 @@ Abrir `index.html` en el navegador (o el link de github.io). Para el mapa no hac
 
 ## Pendientes / ideas
 
-- Versión real de fotos: servidor, cuentas de fotógrafos, subida a R2 con marca de agua, pagos con Mercado Pago.
 - Verificar `facing` y posiciones de las playas con conocimiento local.
