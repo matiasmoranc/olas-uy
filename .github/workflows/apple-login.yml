@@ -1,0 +1,50 @@
+# "Entrar con Apple": genera el secreto que pide Apple (vence a los 6 meses) y lo carga en Supabase.
+# Corre a mano y solo una vez por mes, así el secreto nunca llega a vencer.
+# Necesita estos "secrets" del repositorio:
+#   APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY (todo el contenido del archivo .p8),
+#   SUPABASE_ACCESS_TOKEN y SUPABASE_PROJECT_REF (ya cargados).
+# El Services ID de Apple es fijo: uy.olas.web
+name: Entrar con Apple
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 1 * *"   # el día 1 de cada mes
+
+jobs:
+  apple:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Generar el secreto y cargarlo en Supabase
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          APPLE_CLIENT_ID: uy.olas.web
+        run: |
+          if [ -z "$APPLE_TEAM_ID" ] || [ -z "$APPLE_KEY_ID" ] || [ -z "$APPLE_PRIVATE_KEY" ]; then
+            echo "Faltan los secrets de Apple: no se hace nada todavía."; exit 0
+          fi
+          node - <<'JS'
+          const crypto = require("crypto");
+          const b64 = (o) => Buffer.from(typeof o === "string" ? o : JSON.stringify(o)).toString("base64url");
+          const now = Math.floor(Date.now() / 1000);
+          const head = b64({ alg: "ES256", kid: process.env.APPLE_KEY_ID.trim() });
+          const body = b64({ iss: process.env.APPLE_TEAM_ID.trim(), iat: now, exp: now + 180 * 86400,
+                             aud: "https://appleid.apple.com", sub: process.env.APPLE_CLIENT_ID });
+          const key = crypto.createPrivateKey(process.env.APPLE_PRIVATE_KEY.replace(/\\n/g, "\n"));
+          const sig = crypto.sign("sha256", Buffer.from(`${head}.${body}`), { key, dsaEncoding: "ieee-p1363" }).toString("base64url");
+          const secret = `${head}.${body}.${sig}`;
+          (async () => {
+            const r = await fetch(`https://api.supabase.com/v1/projects/${process.env.SUPABASE_PROJECT_REF}/config/auth`, {
+              method: "PATCH",
+              headers: { Authorization: `Bearer ${process.env.SUPABASE_ACCESS_TOKEN}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ external_apple_enabled: true, external_apple_client_id: process.env.APPLE_CLIENT_ID, external_apple_secret: secret }),
+            });
+            if (!r.ok) { console.error("Supabase respondió", r.status, await r.text()); process.exit(1); }
+            console.log("Listo: 'Entrar con Apple' activado en Supabase. El secreto vence el", new Date((now + 180 * 86400) * 1000).toISOString().slice(0, 10), "(se renueva solo cada mes).");
+          })();
+          JS
