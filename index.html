@@ -225,6 +225,13 @@ section{margin-top:44px}
 .fld{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:14px;color:var(--mut);margin-top:12px}
 .fld textarea{resize:vertical;min-height:70px}
 .mpbar{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--sand);border-radius:18px;padding:12px 14px;margin-bottom:14px}
+.skel{background:#e9eff2!important;border:0;pointer-events:none}
+.shot.skel{display:block}
+.sess .ph0{display:block;width:100%;height:100%;background:#e9eff2}
+.emptyh{color:var(--mut);font-weight:600;margin:10px 2px 0}
+.dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+.dl a{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:var(--ink);font-weight:700}
+.dl img{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:14px;background:#e9eff2}
 .price-ctl{display:flex;align-items:center;justify-content:center;gap:18px;margin:10px 0}
 .price-ctl b{font:800 64px/1 var(--display);letter-spacing:-.04em;min-width:190px;text-align:center}
 .keep{text-align:center;font-size:18px}
@@ -438,7 +445,7 @@ function spark(F,d,sel){const hs=F.hours.slice(d*24,d*24+24),max=Math.max(1.6,..
 const S={sel:{},day:0,hr:H0,open:new Set(),beach:"",k:0,sess:SESSIONS[0],photog:PHOTOGS[0],zone:"Todas",step:1,uploads:[],uBeach:"La Pedrera",uK:0,price:350,mp:false,vi:0};
 const RM=matchMedia("(prefers-reduced-motion: reduce)");
 const app=document.getElementById("app"),V={};
-function render(){const r=(location.hash||"#inicio").slice(1);const v=V[r]?r:"inicio";const o=V[v]();
+function render(){const[r,arg]=(location.hash||"#inicio").slice(1).split("=");S.arg=decodeURIComponent(arg||"");const v=V[r]?r:"inicio";const o=V[v]();
   app.innerHTML=o.html;document.getElementById("url").textContent=o.url;document.title=(o.title?o.title+" · ":"")+"Olas UY";
   document.querySelectorAll(".dock a").forEach(a=>a.classList.toggle("on",a.dataset.sec===(o.sec||v)));o.after&&o.after();}
 function show(){if(vw.classList.contains("on"))closeViewer();if(typeof closeSim==="function")closeSim();if(typeof bs!=="undefined"&&bs.classList.contains("on")){bs.classList.remove("on");scrim.classList.remove("on");bsBeach=null;}if(document.startViewTransition&&!RM.matches)document.startViewTransition(()=>{render();scrollTo(0,0);});else{render();scrollTo(0,0);}}
@@ -474,8 +481,8 @@ V.inicio=()=>{const best0=[...FC].sort((a,b)=>at(b,H0).sc-at(a,H0).sc)[0],bo=bes
   </div>
   <section><div class="sh"><h2>Ahora</h2><a href="#olas">Todas →</a></div>
     <div class="rail">${[...FC].sort((a,b)=>at(b,H0).sc-at(a,H0).sc).slice(0,10).map(F=>{const f=at(F,H0);return `<a class="spot" href="#olas"><span class="top"><span style="font-weight:700;line-height:1.15">${F.b}</span><span class="h tab" style="font-size:30px;white-space:nowrap">${m1(f.h)}<small> m</small></span></span><span class="sc tab" style="--c:${GR[f.g][1]}">⭐ ${m1(f.sc)}<small>/10</small></span><span class="mini tab"><span>${clock}${f.per} s</span><span style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}</span></span></a>`;}).join("")}</div></section>
-  <section><div class="sh"><h2>Recién subidas <span class="pill" style="vertical-align:middle;font-family:var(--body);letter-spacing:0">Ejemplo</span></h2><a href="#fotos">Buscar →</a></div>
-    <div class="rail">${SESSIONS.map(s=>`<button class="shot" data-go="sesion" data-sess="${s.id}" aria-label="${s.beach}, ${dayName(s.k)}"><img src="${photo(s.seed*100+3,true)}" alt="" loading="lazy"><div class="wm"></div><span class="cap"><span>${s.beach}<br><small>${dayName(s.k)} · ${s.from}</small></span><small>${s.n} 📷</small></span></button>`).join("")}</div></section>
+  <section><div class="sh"><h2>Recién subidas${isReal()?"":` <span class="pill" style="vertical-align:middle;font-family:var(--body);letter-spacing:0">Ejemplo</span>`}</h2><a href="#fotos">Buscar →</a></div>
+    ${isReal()?recentReal():`<div class="rail">${SESSIONS.map(s=>`<button class="shot" data-go="sesion" data-sess="${s.id}" aria-label="${s.beach}, ${dayName(s.k)}"><img src="${photo(s.seed*100+3,true)}" alt="" loading="lazy"><div class="wm"></div><span class="cap"><span>${s.beach}<br><small>${dayName(s.k)} · ${s.from}</small></span><small>${s.n} 📷</small></span></button>`).join("")}</div>`}</section>
   <section class="sell"><div><h2>¿Sacás fotos de surf?</h2><p class="mut" style="margin-top:8px">Subilas, poné tu precio y cobrá con Mercado Pago.</p></div><a class="btn" href="#vender">Empezar a vender</a></section>`,after:sea};};
 
 function waveCard(F,inSheet){const own=S.sel[F.b],[d,hr]=own||[S.day,S.hr],f=at(F,d*24+hr),open=inSheet||S.open.has(F.b),bo=bestOf(F,d),fv=FAVS.has(F.b);
@@ -700,7 +707,7 @@ V.olas=()=>{const idx=S.day*24+S.hr,byScore=(a,b)=>at(b,idx).sc-at(a,idx).sc;
     const sel=document.querySelector('#days [aria-pressed="true"]');sel&&sel.scrollIntoView({inline:"center",block:"nearest"});}};};
 cardEvents(document.getElementById("app"));
 
-V.fotos=()=>{const list=SESSIONS.filter(s=>(!S.beach||s.beach===S.beach)&&s.k===S.k);const withPh=[...new Set(SESSIONS.map(s=>s.beach))];
+const fotosDemo=()=>{const list=SESSIONS.filter(s=>(!S.beach||s.beach===S.beach)&&s.k===S.k);const withPh=[...new Set(SESSIONS.map(s=>s.beach))];
   const order=["",...withPh,...BEACHES.filter(b=>!withPh.includes(b))];
   return{url:`olas.uy/fotos/${S.beach?slug(S.beach):"uruguay"}/${iso(dayAt(S.k))}`,title:"Fotos de surf",sec:"fotos",html:`
   <p class="ask">¿Dónde surfeaste? <span class="pill" style="vertical-align:middle;font-family:var(--body);letter-spacing:0">Fotos de ejemplo</span></p>
@@ -714,7 +721,7 @@ V.fotos=()=>{const list=SESSIONS.filter(s=>(!S.beach||s.beach===S.beach)&&s.k===
     const f=document.getElementById("al");if(f)f.onsubmit=e=>{e.preventDefault();toast("Listo, te avisamos ✓");};
     const sel=document.querySelector('#beachR [aria-pressed="true"]');sel&&sel.scrollIntoView({inline:"center",block:"nearest"});}};};
 
-V.sesion=()=>{const s=S.sess,p=ph(s.p),fs=sessPhotos(s),a=toMin(s.from),b=toMin(s.to);
+const sesionDemo=()=>{const s=S.sess,p=ph(s.p),fs=sessPhotos(s),a=toMin(s.from),b=toMin(s.to);
   return{url:`olas.uy/fotos/${slug(s.beach)}/${iso(dayAt(s.k))}/${p.user.replace(/\./g,"-")}`,title:`Fotos de surf en ${s.beach}`,sec:"fotos",html:`
   <div class="shead"><div><button class="link" data-go="fotos" data-beach="${s.beach}">← ${s.beach}</button><h2 style="margin-top:6px">${dayName(s.k)} · ${s.from}–${s.to}</h2></div>
     <button class="row" data-go="fotografo" data-photog="${p.id}" style="background:none;border:0;padding:0;gap:8px">${av(p)}<b>${p.name}</b></button></div>
@@ -727,7 +734,7 @@ V.sesion=()=>{const s=S.sess,p=ph(s.p),fs=sessPhotos(s),a=toMin(s.from),b=toMin(
       best.classList.add("hit");clearTimeout(R.t);R.t=setTimeout(()=>best.scrollIntoView({behavior:RM.matches?"auto":"smooth",block:"center"}),120);};
     document.getElementById("grid").onclick=e=>{const el=e.target.closest(".pt");if(el)openViewer(+el.dataset.i);};}};};
 
-V.fotografo=()=>{const p=S.photog,ss=SESSIONS.filter(s=>s.p===p.id);
+const fotografoDemo=()=>{const p=S.photog,ss=SESSIONS.filter(s=>s.p===p.id);
   return{url:`olas.uy/fotografos/${slug(p.name)}`,title:p.name,sec:"fotos",html:`
   <div class="cover"><img src="${photo(p.cover)}" alt=""></div>
   <div class="prof">${av(p,true)}<div style="padding-bottom:6px"><h2>${p.name}</h2><span class="mut">@${p.user} · ${p.zone}</span></div></div>
@@ -814,7 +821,7 @@ async function publishSession(){UP.busy=true;UP.done=0;UP.total=UP.files.length;
         await put(u.original,f,f.type||"image/jpeg");await put(u.preview,pv,"image/jpeg");await put(u.thumb,th,"image/jpeg");
         const{error:e3}=await SB.from("photos").update({ready:true}).eq("id",u.id);if(e3)throw e3;UP.done++;paintProg();}}
     const{error:e4}=await SB.from("sessions").update({published:true}).eq("id",ses.id);if(e4)throw e4;
-    UP.result={beach:UP.beach,day:UP.k,n:UP.done,price:UP.price};UP.urls.forEach(URL.revokeObjectURL);UP.files=[];UP.urls=[];UP.step=4;
+    UP.result={beach:UP.beach,day:UP.k,n:UP.done,price:UP.price};clearRC();UP.urls.forEach(URL.revokeObjectURL);UP.files=[];UP.urls=[];UP.step=4;
   }catch(e){console.error(e);toast(e.message?.startsWith("No se pudo")?e.message:"No se pudo publicar: "+(e.message||"error"));}
   UP.busy=false;render();}
 function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender fotos",sec:"vender",html,after});
@@ -882,21 +889,114 @@ const EXT_OF={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"};
 async function fnMsg(e){try{const j=await e.context.json();return j.error||e.message;}catch(_){return e.message||"error";}}
 const fotos=n=>n===1?"1 foto":`${n} fotos`;
 
+// ============ FOTOS REALES (desde el servidor) ============
+// Sin config.js de Supabase se usan las pantallas de ejemplo (fotosDemo, sesionDemo, fotografoDemo).
+const isReal=()=>!!(window.OLAS_CONFIG&&window.OLAS_CONFIG.supabaseUrl);
+const PURL=k=>`${((window.OLAS_CONFIG||{}).photosUrl||"").replace(/\/$/,"")}/${k}`;
+const t5=t=>t?String(t).slice(0,5).replace(/^0/,""):"";
+const dLbl=d=>{const k=Math.round((today-new Date(d+"T00:00"))/864e5);return k>=0&&k<7?dayName(k):`${+d.slice(8,10)}/${+d.slice(5,7)}`;};
+// Caché simple: devuelve lo guardado y, si no hay o es viejo (>60 s), lo pide y vuelve a dibujar
+const RC={};
+function need(key,fn,ttl=60000){const c=RC[key];if(SB&&!RC["?"+key]&&(!c||Date.now()-c.t>ttl)){RC["?"+key]=1;
+    fn().then(v=>{RC[key]={v,t:Date.now()};}).catch(e=>{console.error(e);RC[key]={v:null,t:Date.now()};}).finally(()=>{delete RC["?"+key];render();});}
+  return c?c.v:undefined;}
+const clearRC=()=>Object.keys(RC).forEach(k=>delete RC[k]);
+const SES_SEL="id,beach,day,start_time,end_time,price,created_at,photographer_id,photographer:photographers(name,slug,avatar_url),photos(count)";
+async function covers(ids){if(!ids.length)return{};const{data}=await SB.from("photos").select("session_id,thumb_key,taken_at").in("session_id",ids).order("taken_at",{ascending:true}).limit(500);
+  const m={};(data||[]).forEach(x=>{if(!m[x.session_id])m[x.session_id]=x.thumb_key;});return m;}
+async function fetchSessions(f){let q=SB.from("sessions").select(SES_SEL).eq("published",true);if(f.beach)q=q.eq("beach",f.beach);if(f.day)q=q.eq("day",f.day);if(f.ph)q=q.eq("photographer_id",f.ph);
+  const{data,error}=await q.order("created_at",{ascending:false}).limit(f.limit||30);if(error)throw error;const cv=await covers(data.map(x=>x.id));
+  return data.map(x=>({...x,photographer:one(x.photographer),n:(x.photos&&x.photos[0]&&x.photos[0].count)||0,cover:cv[x.id]})).filter(x=>x.n>0);}
+async function fetchSession(id){const{data:x,error}=await SB.from("sessions").select(SES_SEL).eq("id",id).maybeSingle();if(error)throw error;if(!x)return null;
+  const{data:ps,error:e2}=await SB.from("photos").select("id,thumb_key,preview_key,taken_at").eq("session_id",id).eq("ready",true).order("taken_at",{ascending:true});if(e2)throw e2;
+  return{...x,photographer:one(x.photographer),photos:ps||[]};}
+async function fetchPhotographer(sl){const{data:p,error}=await SB.from("photographers").select("*").eq("slug",sl).maybeSingle();if(error)throw error;if(!p)return null;return{...p,sessions:await fetchSessions({ph:p.id,limit:60})};}
+const one=x=>Array.isArray(x)?x[0]:x;
+const skelRail=n=>`<div class="rail">${Array.from({length:n},()=>`<span class="shot skel" aria-hidden="true"></span>`).join("")}</div>`;
+const skelGrid=n=>`<div class="sessions">${Array.from({length:n},()=>`<span class="sess skel" aria-hidden="true"></span>`).join("")}</div>`;
+const sessCardR=x=>`<button class="sess" data-go="sesion=${x.id}" aria-label="${x.beach}, ${dLbl(x.day)}, ${fotos(x.n)}">${x.cover?`<img src="${PURL(x.cover)}" alt="" loading="lazy">`:`<span class="ph0"></span>`}<span class="tag">${dLbl(x.day)} · ${t5(x.start_time)}–${t5(x.end_time)}</span><span class="ov"><b>${x.beach}</b><span>${(x.photographer?.name||"").split(" ")[0]} · ${fotos(x.n)}</span></span></button>`;
+function recentReal(){const r=need("recent",()=>fetchSessions({limit:10}));
+  if(r===undefined)return skelRail(3);
+  if(!r||!r.length)return skelRail(3)+`<p class="emptyh">Acá van a aparecer las fotos de las sesiones.</p>`;
+  return `<div class="rail">${r.map(x=>`<button class="shot" data-go="sesion=${x.id}" aria-label="${x.beach}, ${dLbl(x.day)}">${x.cover?`<img src="${PURL(x.cover)}" alt="" loading="lazy">`:""}<span class="cap"><span>${x.beach}<br><small>${dLbl(x.day)} · ${t5(x.start_time)}</small></span><small>${x.n} 📷</small></span></button>`).join("")}</div>`;}
+
+V.fotos=()=>{if(!isReal())return fotosDemo();const day=iso(dayAt(S.k)),list=need(`l:${S.beach}:${day}`,()=>fetchSessions({beach:S.beach,day}));
+  const body=list===undefined?skelGrid(3):list&&list.length?`<div class="sessions">${list.map(sessCardR).join("")}</div>`:skelGrid(3)+`<p class="emptyh">Todavía no hay fotos de ${S.beach||"ninguna playa"} ${dayName(S.k).toLowerCase()}.</p>`;
+  return{url:`olas.uy/fotos/${S.beach?slug(S.beach):"uruguay"}/${day}`,title:"Fotos de surf",sec:"fotos",html:`
+  <p class="ask">¿Dónde surfeaste?</p>
+  <div class="rail" id="beachR">${["",...BEACHES].map(b=>`<button class="bchip" data-b="${b}" aria-pressed="${b===S.beach}"><i>${b?b[0]:"🇺🇾"}</i>${b||"Todas"}</button>`).join("")}</div>
+  <p class="ask" style="margin-top:18px">¿Cuándo?</p>
+  <div class="rail" id="dayR">${[0,1,2,3,4,5,6].map(k=>`<button class="chip" data-k="${k}" aria-pressed="${k===S.k}">${dayName(k)}</button>`).join("")}</div>
+  <section style="margin-top:22px">${body}</section>`,
+  after(){document.getElementById("beachR").onclick=e=>{const b=e.target.closest("[data-b]");if(b){S.beach=b.dataset.b;render();}};
+    document.getElementById("dayR").onclick=e=>{const b=e.target.closest("[data-k]");if(b){S.k=+b.dataset.k;render();}};
+    const sel=document.querySelector('#beachR [aria-pressed="true"]');sel&&sel.scrollIntoView({inline:"center",block:"nearest"});}};};
+
+V.sesion=()=>{if(!isReal()||!S.arg)return sesionDemo();const x=need("s:"+S.arg,()=>fetchSession(S.arg));
+  const R=(html,after,t)=>({url:"olas.uy/fotos",title:t||"Fotos de surf",sec:"fotos",html,after});
+  if(x===undefined)return R(`<div class="shead"><h2>Cargando…</h2></div>`+skelGrid(6));
+  if(!x)return R(`<div class="shead"><div><button class="link" data-go="fotos">← Fotos</button><h2 style="margin-top:6px">No encontramos esa sesión</h2></div></div>`);
+  const p=x.photographer||{},a=toMin(t5(x.start_time)),b=Math.max(a+1,toMin(t5(x.end_time))),m=f=>f.taken_at?toMin(t5(f.taken_at)):a;
+  return R(`
+  <div class="shead"><div><button class="link" data-go="fotos" data-beach="${x.beach}">← ${x.beach}</button><h2 style="margin-top:6px">${dLbl(x.day)} · ${t5(x.start_time)}–${t5(x.end_time)}</h2></div>
+    ${p.slug?`<button class="row" data-go="fotografo=${p.slug}" style="background:none;border:0;padding:0;gap:8px"><span class="av" style="background:var(--aqua)" aria-hidden="true">${initials(p.name||"?")}</span><b>${p.name}</b></button>`:""}</div>
+  <div class="scrub"><span aria-hidden="true">🕐</span><b id="sT" class="tab">${t5(x.start_time)}</b><input type="range" id="sR" min="${a}" max="${b}" value="${a}" step="1" aria-label="¿A qué hora estabas en el agua?"><span class="mut" style="font-size:14px;white-space:nowrap">${fotos(x.photos.length)}</span></div>
+  <div class="photos" id="grid">${x.photos.map((f,i)=>`<button class="pt" data-i="${i}" data-m="${m(f)}" aria-label="Foto de las ${t5(f.taken_at)}"><img src="${PURL(f.thumb_key)}" alt="" loading="lazy"><span class="t tab">${t5(f.taken_at)}</span></button>`).join("")}</div>`,
+  ()=>{const Rg=document.getElementById("sR"),T=document.getElementById("sT"),pts=[...document.querySelectorAll("#grid .pt")];
+    Rg.oninput=()=>{const v=+Rg.value;T.textContent=fromMin(v);let best=null,bd=1e9;
+      pts.forEach(el=>{const d=Math.abs(+el.dataset.m-v);el.classList.toggle("dim",d>12);el.classList.remove("hit");if(d<bd){bd=d;best=el;}});
+      if(best){best.classList.add("hit");clearTimeout(Rg.t);Rg.t=setTimeout(()=>best.scrollIntoView({behavior:RM.matches?"auto":"smooth",block:"center"}),120);}};
+    document.getElementById("grid").onclick=e=>{const el=e.target.closest(".pt");if(el){S.vreal=x;openViewer(+el.dataset.i);}};},`Fotos de surf en ${x.beach}`);};
+
+V.fotografo=()=>{if(!isReal()||!S.arg)return fotografoDemo();const p=need("f:"+S.arg,()=>fetchPhotographer(S.arg));
+  const R=(html,t)=>({url:`olas.uy/fotografos/${S.arg}`,title:t||"Fotógrafo",sec:"fotos",html});
+  if(p===undefined)return R(`<div class="cover skel"></div>`+skelGrid(3));
+  if(!p)return R(`<div class="shead"><h2>No encontramos ese fotógrafo</h2></div>`);
+  const n=p.sessions.reduce((t,x)=>t+x.n,0),cov=p.sessions.find(x=>x.cover);
+  return R(`<div class="cover${cov?"":" skel"}">${cov?`<img src="${PURL(cov.cover)}" alt="">`:""}</div>
+  <div class="prof"><span class="av big" style="background:var(--aqua)" aria-hidden="true">${initials(p.name)}</span><div style="padding-bottom:6px"><h2>${p.name}</h2><span class="mut">${p.zone||""}</span></div></div>
+  ${p.bio?`<p style="margin:14px 0 0;max-width:60ch">${p.bio.replace(/</g,"&lt;")}</p>`:""}
+  <div class="stats"><span class="stat"><b class="tab">${n}</b><span class="mut">${n===1?"foto":"fotos"}</span></span><span class="stat"><b class="tab">${p.sessions.length}</b><span class="mut">${p.sessions.length===1?"sesión":"sesiones"}</span></span></div>
+  <section style="margin-top:22px">${p.sessions.length?`<div class="sessions">${p.sessions.map(sessCardR).join("")}</div>`:skelGrid(3)+`<p class="emptyh">Todavía no publicó sesiones.</p>`}</section>`,p.name);};
+
+// ---- Después de pagar: #listo con ?orden=<id> (Mercado Pago vuelve acá)
+V.listo=()=>{const o=new URLSearchParams(location.search).get("orden");const R=html=>({url:"olas.uy/compra",title:"Tu compra",sec:"fotos",html});
+  if(!o||!isReal())return R(`<div class="card" style="max-width:560px;margin:0 auto"><h2>No encontramos la compra</h2></div>`);
+  const r=need("o:"+o,()=>fetch(`${window.OLAS_CONFIG.supabaseUrl}/functions/v1/download?orden=${encodeURIComponent(o)}`).then(x=>x.json()),4000);
+  if(r===undefined||(r&&r.status==="pending")){setTimeout(()=>{if(location.hash==="#listo")render();},4200);
+    return R(`<div class="card" style="max-width:560px;margin:0 auto;text-align:center"><h2>Confirmando tu pago…</h2><p class="mut" style="margin-top:8px">Tarda unos segundos. No cierres esta página.</p><div class="prog"><i style="width:60%"></i></div></div>`);}
+  if(!r||r.error||r.status!=="paid")return R(`<div class="card" style="max-width:560px;margin:0 auto;text-align:center"><h2>El pago no se completó</h2><p class="mut" style="margin-top:8px">No se cobró nada. Podés intentarlo de nuevo.</p><button class="btn" data-go="fotos" style="margin-top:14px">Volver a las fotos</button></div>`);
+  return R(`<div class="card" style="max-width:640px;margin:0 auto"><div style="text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center"><div class="okc">✓</div><h2>¡${r.photos.length===1?"Es tuya":"Son tuyas"}!</h2>
+    <p class="mut">Descargalas ahora. ${ME?"También las tenés en tu cuenta (tocá tu círculo arriba).":"Guardá esta página, o entrá con Google para tenerlas siempre."}</p></div>
+    <div class="dl">${r.photos.map(f=>`<a href="${f.download}" target="_blank" rel="noopener"><img src="${f.preview}" alt="">⬇ Descargar ${t5(f.taken_at)}</a>`).join("")}</div></div>`);};
+
 // ============ Visor de foto y compra ============
 const vw=document.getElementById("viewer"),sheet=document.getElementById("sheet"),scrim=document.getElementById("scrim");
-function paintViewer(){const s=S.sess,f=sessPhotos(s)[S.vi],p=ph(s.p);
+function paintViewer(){if(S.vreal){const x=S.vreal,f=x.photos[S.vi];
+    document.getElementById("vImg").innerHTML=`<img src="${PURL(f.preview_key)}" alt="Surfista en ${x.beach} a las ${t5(f.taken_at)}, vista previa">`;
+    document.getElementById("vWho").innerHTML=`<b>${x.beach}</b>`;document.getElementById("vPrice").textContent=money(x.price);document.getElementById("vTime").textContent="· "+t5(f.taken_at);return;}
+  const s=S.sess,f=sessPhotos(s)[S.vi],p=ph(s.p);
   document.getElementById("vImg").innerHTML=`<img src="${photo(f.seed)}" alt="Surfista en ${s.beach} a las ${fromMin(f.m)}, vista previa"><div class="wm"></div>`;
   document.getElementById("vWho").innerHTML=`${av(p)}<b>${s.beach}</b>`;
   document.getElementById("vPrice").textContent=money(s.price);document.getElementById("vTime").textContent="· "+fromMin(f.m);}
 function openViewer(i){S.vi=i;paintViewer();vw.classList.add("on");document.body.style.overflow="hidden";document.getElementById("vBuy").focus();}
-function closeViewer(){vw.classList.remove("on");closeSheet();document.body.style.overflow="";}
-function step(d){S.vi=(S.vi+d+30)%30;paintViewer();}
+function closeViewer(){vw.classList.remove("on");closeSheet();document.body.style.overflow="";S.vreal=null;}
+function step(d){const n=S.vreal?S.vreal.photos.length:30;S.vi=(S.vi+d+n)%n;paintViewer();}
 document.getElementById("vClose").onclick=closeViewer;document.getElementById("vPrev").onclick=()=>step(-1);document.getElementById("vNext").onclick=()=>step(1);
 let tx=null;const vi=document.getElementById("vImg");vi.addEventListener("touchstart",e=>tx=e.touches[0].clientX,{passive:true});vi.addEventListener("touchend",e=>{if(tx==null)return;const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>40)step(d<0?1:-1);tx=null;});
 addEventListener("keydown",e=>{if(e.key==="Escape"&&bs.classList.contains("on")){closeBeach();return;}if(!vw.classList.contains("on"))return;if(e.key==="Escape")sheet.classList.contains("on")?closeSheet():closeViewer();if(e.key==="ArrowRight")step(1);if(e.key==="ArrowLeft")step(-1);});
+// Compra real: pide el mail y manda a pagar a Mercado Pago (función checkout)
+function buyReal(){const x=S.vreal,f=x.photos[S.vi];
+  sheet.innerHTML=`<div class="grab"></div><h2>${money(x.price)}</h2><p class="mut">Foto original, sin marca de agua. Descarga inmediata.</p>
+    <form id="pay" style="display:flex;flex-direction:column;gap:12px"><input class="inp" id="pMail" type="email" required placeholder="tu@mail.com" autocomplete="email" aria-label="Tu mail" value="${ME?.email||""}"><button class="btn mp block" id="payB">Pagar con Mercado Pago</button></form>`;
+  sheet.classList.add("on");scrim.classList.add("on");setTimeout(()=>document.getElementById("pMail").focus(),300);
+  document.getElementById("pay").onsubmit=async e=>{e.preventDefault();const b=document.getElementById("payB");b.disabled=true;b.textContent="Abriendo Mercado Pago…";
+    const{data,error}=await SB.functions.invoke("checkout",{body:{photo_ids:[f.id],email:document.getElementById("pMail").value.trim()}});
+    if(data?.url){location.href=data.url;return;}toast(error?await fnMsg(error):"No se pudo iniciar el pago");b.disabled=false;b.textContent="Pagar con Mercado Pago";};}
+
 function closeSheet(){sheet.classList.remove("on");scrim.classList.remove("on");}
 scrim.onclick=()=>{if(bs.classList.contains("on"))closeBeach();else closeSheet();};
-document.getElementById("vBuy").onclick=()=>{const s=S.sess;
+document.getElementById("vBuy").onclick=()=>{if(S.vreal){buyReal();return;}const s=S.sess;
   sheet.innerHTML=`<div class="grab"></div><h2>${money(s.price)}</h2><p class="mut">Original, sin marca de agua. Te llega al mail.</p>
     <form id="pay" style="display:flex;flex-direction:column;gap:12px"><input class="inp" id="pMail" type="email" required placeholder="tu@mail.com" autocomplete="email" aria-label="Tu mail"><button class="btn mp block">Pagar con Mercado Pago</button></form>`;
   sheet.classList.add("on");scrim.classList.add("on");setTimeout(()=>document.getElementById("pMail").focus(),300);
@@ -948,7 +1048,7 @@ async function initAccounts(){
       if(was!==ME?.id){PH_ME=undefined;if(location.hash==="#vender")render();}});
     // Vuelta desde Mercado Pago (conexión del fotógrafo)
     const qs=new URLSearchParams(location.search);if(qs.get("mp")){toast(qs.get("mp")==="ok"?"Mercado Pago conectado ✓":"No se pudo conectar Mercado Pago");qs.delete("mp");history.replaceState(null,"",location.pathname+(qs.toString()?"?"+qs:"")+location.hash);}
-    if(location.hash==="#vender")render();
+    render();
   }catch(e){console.warn("No se pudo cargar el inicio de sesión",e);}}
 boot();initAccounts();
 </script>
