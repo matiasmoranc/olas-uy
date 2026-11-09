@@ -97,5 +97,6 @@ En **developer.apple.com → Certificates, Identifiers & Profiles**:
    - Domains: `gcakonxuqpcdpydrvyhz.supabase.co`
    - Return URLs: `https://gcakonxuqpcdpydrvyhz.supabase.co/auth/v1/callback`
 3. **Keys → +**: nombre `Olas UY Sign in with Apple`, marcar **Sign in with Apple → Configure** (App ID `uy.olas.app`) → Register → **descargar el archivo .p8** (se baja una sola vez). Anotar el **Key ID** y el **Team ID** (arriba a la derecha).
-4. En **Supabase → Authentication → Sign In / Providers → Apple**: activar, **Client IDs** = `uy.olas.web`, y en **Secret Key** pegar el secreto generado con la herramienta de la documentación de Supabase ("Generate a client secret": Team ID + Key ID + Services ID + archivo .p8). **El secreto vence a los 6 meses**: hay que generarlo de nuevo.
-5. Avisar para poner `apple: true` en `config.js`.
+4. En **GitHub → Settings → Secrets → Actions**, crear 3 secrets: `APPLE_TEAM_ID` (Team ID), `APPLE_KEY_ID` (Key ID) y `APPLE_PRIVATE_KEY` (abrir el .p8 con el Bloc de notas y pegar **todo** el texto, incluidas las líneas `-----BEGIN PRIVATE KEY-----` y `-----END PRIVATE KEY-----`).
+5. Correr la acción **Entrar con Apple** (`.github/workflows/apple-login.yml`): genera el secreto de Apple y lo carga en Supabase (activa el proveedor Apple con Client ID `uy.olas.web`). Se repite sola el día 1 de cada mes, así el secreto (que vence a los 6 meses) nunca vence.
+6. Poner `apple: true` en `config.js`.
