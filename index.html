@@ -15,7 +15,7 @@ html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}
   color-scheme:light;
   --foam:#f7fbfc; --white:#ffffff; --sand:#f5ede0; --mist:#e6f4f7; --line:#dcebef;
   --ink:#0c2a38; --mut:#6b8794; --aqua:#13a8c2; --aqua-d:#0b7f95; --coral:#ff6f4f; --coral-ink:#ffffff;
-  --g-plano:#9fb3bd; --g-malo:#f59e5b; --g-reg:#f2c94c; --g-bueno:#3ccf8e; --g-muy:#8b7cf6;
+  --g-plano:#9fb3bd; --g-malo:#f59e5b; --g-reg:#f2c94c; --g-bueno:#3ccf8e; --g-muy:#8b7cf6; --g-pel:#ef4444;
   --display:"Bricolage Grotesque","Outfit",system-ui,sans-serif; --body:"Outfit",system-ui,-apple-system,"Segoe UI",sans-serif;
   --r:22px; --shadow:0 10px 30px -12px rgba(12,42,56,.18);
 }
@@ -280,25 +280,62 @@ section{margin-top:44px}
 const BEACHES=["Kiyú","Pocitos","Solymar","El Pinar","Bello Horizonte","Cuchilla Alta","Punta Negra","Piriápolis","El Emir","Playa Brava","Montoya","José Ignacio","La Balconada","Los Botes","La Aguada","La Pedrera","Punta Rubia","Cabo Polonio","Barra de Valizas","Punta del Diablo","Santa Teresa"];
 const ZONE=b=>["Kiyú","Pocitos","Solymar","El Pinar"].includes(b)?"Montevideo":["Bello Horizonte","Cuchilla Alta","Punta Negra","Piriápolis"].includes(b)?"Canelones":["El Emir","Playa Brava","Montoya","José Ignacio"].includes(b)?"Punta del Este":"Rocha";
 const slug=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
-const GR=[["Plano","var(--g-plano)"],["Malo","var(--g-malo)"],["Regular","var(--g-reg)"],["Bueno","var(--g-bueno)"],["Muy bueno","var(--g-muy)"]];
+const GR=[["Plano","var(--g-plano)"],["Malo","var(--g-malo)"],["Regular","var(--g-reg)"],["Bueno","var(--g-bueno)"],["Muy bueno","var(--g-muy)"],["Peligroso","var(--g-pel)"]];
 function rng(seed){let a=(seed*9301+49297)%2147483647;return()=>{a=(a*16807)%2147483647;return(a-1)/2147483646;};}
 // Pronóstico de ejemplo por playa: altura ahora, calificación y 24 h
 // Puntaje 0–10 como en el pronóstico real: tamaño × período + efecto del viento
-function score(h,p,ws,wk){let s=h<.3?0:h<.5?2:h<.8?4:h<1.2?6:h<2?8:7;s*=p<6?.7:p<8?.85:p<11?1:1.1;
+function score(h,p,ws,wk){if(h==null)return 0;let s=h<.3?0:h<.5?2:h<.8?4:h<1.2?6:h<2?8:h<2.8?7:h<3.5?5:3;s*=p==null?1:p<6?.7:p<8?.85:p<11?1:1.1;ws=ws||0;
   if(ws<8)s+=1;else if(wk==="terral"&&ws<35)s+=1.2;else if(wk==="cruzado"&&ws>15)s-=ws>25?1.5:.6;else if(wk==="mar")s-=ws>25?3:ws>12?1.5:.5;return Math.max(0,Math.min(10,s));}
-const WK={terral:{c:"#22b573",t:"Terral"},cruzado:{c:"#8aa2ae",t:"Cruzado"},mar:{c:"#f2664a",t:"De mar"}};
-// Pronóstico de ejemplo hora por hora, 7 días desde hoy 0:00 (índice = día*24 + hora)
-const H0=new Date().getHours();
+const WK={terral:{c:"#22b573",t:"Terral"},calmo:{c:"#3fa9cf",t:"Calmo"},cruzado:{c:"#8aa2ae",t:"Cruzado"},mar:{c:"#f2664a",t:"De mar"}};
+// ============ Pronóstico REAL (Open-Meteo) ============
+// Todo en hora de Uruguay. Índice de cada hora = día*24 + hora, contando desde hoy 0:00.
+const TZ="America/Montevideo";
+function nowUY(){try{const p={};new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).forEach(x=>p[x.type]=x.value);
+  return new Date(+p.year,+p.month-1,+p.day,+p.hour%24,+p.minute);}catch(e){const d=new Date();return new Date(d.getTime()+(d.getTimezoneOffset()-180)*60000);}}
+const H0=nowUY().getHours();
 const DIAS_F=k=>{const d=new Date(today);d.setDate(d.getDate()+k);return k===0?"Hoy":k===1?"Mañana":`${DIAS[d.getDay()]} ${d.getDate()}`;};
-const FC=BEACHES.map((b,k)=>{const r=rng(k+3),open=ZONE(b)==="Rocha"?1.25:ZONE(b)==="Punta del Este"?1:ZONE(b)==="Canelones"?.55:.3;const p0=6+r()*7,w0=5+r()*14;
+// Punto en el mar donde se pide el pronóstico y hacia dónde mira la playa (grados)
+const SPOT={"Kiyú":[-34.71,-56.73,200],"Pocitos":[-34.93,-56.15,180],"Solymar":[-34.87,-55.96,165],"El Pinar":[-34.83,-55.89,165],"Bello Horizonte":[-34.81,-55.39,175],"Cuchilla Alta":[-34.82,-55.32,175],"Punta Negra":[-34.92,-55.24,175],"Piriápolis":[-34.89,-55.27,165],"El Emir":[-34.97,-54.95,145],"Playa Brava":[-34.97,-54.93,150],"Montoya":[-34.93,-54.85,160],"José Ignacio":[-34.86,-54.63,165],"La Balconada":[-34.68,-54.17,195],"Los Botes":[-34.67,-54.14,110],"La Aguada":[-34.67,-54.13,125],"La Pedrera":[-34.60,-54.10,125],"Punta Rubia":[-34.62,-54.10,135],"Cabo Polonio":[-34.42,-53.78,150],"Barra de Valizas":[-34.35,-53.77,140],"Punta del Diablo":[-34.05,-53.52,110],"Santa Teresa":[-33.98,-53.50,115]};
+const angDiff=(a,b)=>{let d=Math.abs(a-b)%360;return d>180?360-d:d;};
+// Cuánto del mar entra a la playa según de dónde viene (1 = de frente, 0,15 = protegida)
+const expo=(f,dir)=>{if(dir==null)return 1;const d=angDiff(dir,f);return d<=35?1:d>=115?.15:1-.85*(d-35)/80;};
+// Altura en la playa: mar de fondo + mar de viento, cada uno según su dirección
+function effH(f,[h,d,,sh,sd,wh,wwd]){if(h==null)return null;if(sh!=null&&wh!=null){const a=sh*expo(f,sd??d),b=wh*expo(f,wwd??d);return Math.min(h,Math.hypot(a,b));}return h*expo(f,d);}
+function windK(f,wd,ws){if(ws==null||wd==null||ws<8)return"calmo";const d=angDiff(wd,(f+180)%360);return d<=50?"terral":d>=130?"mar":"cruzado";}
+function mkHour(clk,h,per,ws,wd,wk){const sc=score(h,per,ws,wk),g=(h!=null&&h>=3)||(ws!=null&&ws>=50)?5:h==null||h<.3?0:sc>=7?4:sc>=5?3:sc>=3?2:1;
+  return{clk,h:h??0,per:per==null?0:Math.round(per),ws:ws==null?0:Math.round(ws),wk,wd,sc,g};}
+const HM="wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,wind_wave_height,wind_wave_direction",HW="wind_speed_10m,wind_direction_10m";
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function getJSON(u,tries=3){for(let k=0;;k++){const c=new AbortController(),t=setTimeout(()=>c.abort(),10000);
+  try{const r=await fetch(u,{signal:c.signal});if(!r.ok)throw new Error(r.status);return await r.json();}catch(e){if(k>=tries-1)throw e;await sleep(1500*(k+1));}finally{clearTimeout(t);}}}
+// Una sola llamada para todas las playas (coordenadas separadas por coma)
+async function loadLive(){const lat=BEACHES.map(b=>SPOT[b][0]).join(","),lon=BEACHES.map(b=>SPOT[b][1]).join(",");
+  const q=`latitude=${lat}&longitude=${lon}&timezone=America%2FMontevideo&forecast_days=7`;
+  const[m,w]=await Promise.all([getJSON(`https://marine-api.open-meteo.com/v1/marine?${q}&hourly=${HM}`),getJSON(`https://api.open-meteo.com/v1/forecast?${q}&hourly=${HW}`)]);
+  const M=Array.isArray(m)?m:[m],W=Array.isArray(w)?w:[w],times=M[0].hourly.time,r2=v=>v==null?null:Math.round(v*100)/100;
+  return{at:Date.now(),times,b:BEACHES.map((b,k)=>{const mh=M[k].hourly,wh=W[k].hourly;
+    return times.map((t,i)=>{const j=wh.time.indexOf(t);return[mh.wave_height[i],mh.wave_direction[i],mh.wave_period[i],mh.swell_wave_height[i],mh.swell_wave_direction[i],mh.wind_wave_height[i],mh.wind_wave_direction?mh.wind_wave_direction[i]:null,j>=0?wh.wind_speed_10m[j]:null,j>=0?wh.wind_direction_10m[j]:null].map(r2);});})};}
+let FC=[],NDAYS=7,SRC={kind:"loading",at:0};
+// Arma las tarjetas desde hoy 0:00. Devuelve false si los datos no alcanzan para hoy.
+function build(D){const t0=`${iso(today)}T00:00`,s0=D.times.indexOf(t0);if(s0<0||D.times.length-s0<H0+1)return false;
+  const n=Math.min(7*24,D.times.length-s0);NDAYS=Math.max(1,Math.floor(n/24));
+  FC=BEACHES.map((b,k)=>{const f=SPOT[b][2];return{b,hours:Array.from({length:NDAYS*24},(_,i)=>{const x=D.b[k][s0+i]||[];const h=effH(f,x),ws=x[7],wd=x[8];return mkHour(i%24,h,x[2],ws,wd,windK(f,wd,ws));})};});
+  return true;}
+const CK="olasuy-fc";
+const saveCache=D=>{try{localStorage.setItem(CK,JSON.stringify(D));}catch(e){}};
+const loadCache=()=>{try{return JSON.parse(localStorage.getItem(CK)||"null");}catch(e){return null;}};
+const hhmm=ms=>new Date(ms).toLocaleTimeString("es-UY",{hour:"2-digit",minute:"2-digit",hourCycle:"h23",timeZone:TZ});
+const srcTxt=()=>SRC.kind==="live"||SRC.kind==="cache"?`Open-Meteo · ${hhmm(SRC.at)}`:SRC.kind==="offline"?`Sin conexión · datos de las ${hhmm(SRC.at)}`:SRC.kind==="sample"?"Sin conexión · datos de EJEMPLO":"";
+// Datos de ejemplo: solo si nunca se pudo cargar el pronóstico real
+const sampleFC=()=>BEACHES.map((b,k)=>{const r=rng(k+3),open=ZONE(b)==="Rocha"?1.25:ZONE(b)==="Punta del Este"?1:ZONE(b)==="Canelones"?.55:.3;const p0=6+r()*7,w0=5+r()*14;
   const hours=Array.from({length:168},(_,i)=>{const clk=i%24,h=Math.max(.1,open*(1+.45*Math.sin(i/14+k)+.2*Math.sin(i/5+k)+.08*r())),per=Math.round(p0+2*Math.sin(i/20+k));
     const wk=clk>=6&&clk<11?(r()<.8?"terral":"cruzado"):clk>=13&&clk<20?(r()<.75?"mar":"cruzado"):(r()<.5?"terral":"cruzado");
     const ws=Math.round(w0+(clk>=13&&clk<20?10:0)+6*Math.sin(i/30+k)+r()*5),wd={terral:340,cruzado:250,mar:160}[wk]+Math.round(r()*30-15),sc=score(h,per,ws,wk);
     return{clk,h,per,ws:Math.max(2,ws),wk,wd,sc,g:h<.3?0:sc>=7?4:sc>=5?3:sc>=3?2:1};});
   return{b,hours};});
-const at=(F,i)=>F.hours[i];
+const at=(F,i)=>F.hours[Math.min(i,F.hours.length-1)];
 // Mejor hora con luz (6 a 20 h) de un día
-const bestOf=(F,d)=>{let t=null;for(let c=6;c<20;c++){if(d===0&&c<H0)continue;const x=F.hours[d*24+c];if(!t||x.sc>t.sc)t=x;}return t||F.hours[d*24+H0];};
+const bestOf=(F,d)=>{let t=null;for(let c=6;c<20;c++){if(d===0&&c<H0)continue;const x=F.hours[d*24+c];if(!x)continue;if(!t||x.sc>t.sc)t=x;}return t||F.hours[d*24+H0];};
 
 // Posición de cada playa en el mapa (las mismas del pronóstico real)
 const MAPPOS={"Kiyú": [-34.70231, -56.73234], "Pocitos": [-34.9136, -56.14412], "Solymar": [-34.8417, -55.96232], "El Pinar": [-34.80572, -55.89433], "Bello Horizonte": [-34.77985, -55.39886], "Cuchilla Alta": [-34.8141, -55.33623], "Punta Negra": [-34.90267, -55.23596], "Piriápolis": [-34.86656, -55.27892], "El Emir": [-34.9651, -54.9384], "Playa Brava": [-34.95645, -54.93187], "Montoya": [-34.91816, -54.86194], "José Ignacio": [-34.84411, -54.64374], "La Balconada": [-34.66481, -54.16826], "Los Botes": [-34.65794, -54.14993], "La Aguada": [-34.65012, -54.15287], "La Pedrera": [-34.59652, -54.1242], "Punta Rubia": [-34.60092, -54.12788], "Cabo Polonio": [-34.40228, -53.79003], "Barra de Valizas": [-34.33868, -53.78746], "Punta del Diablo": [-34.04213, -53.54093], "Santa Teresa": [-33.9726, -53.52454]};
@@ -313,7 +350,7 @@ const saveFV=()=>{try{localStorage.setItem("olasuy-maq-favs",JSON.stringify([...
 const seen=b=>{VIEWS[b]=(VIEWS[b]||0)+1;saveFV();};
 const clkLbl=(d,h)=>d===0&&h===H0?"Ahora":`${DIAS_F(d)} · ${h}:00`;
 const ring=(sc,col,size)=>{const R=26,C=2*Math.PI*R;return `<svg class="ring" viewBox="0 0 62 62" ${size?`style="width:${size}px;height:${size}px"`:""} role="img" aria-label="Puntaje ${m1(sc)} de 10"><circle cx="31" cy="31" r="${R}" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="31" cy="31" r="${R}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C*sc/10} ${C}" transform="rotate(-90 31 31)"/><text x="31" y="38" text-anchor="middle">${m1(sc)}</text></svg>`;};
-const arrow=(wd,col)=>`<svg viewBox="0 0 20 20" aria-hidden="true" style="transform:rotate(${wd+180}deg)"><path d="M10 1.5 16 17 10 13.6 4 17Z" fill="${col}"/></svg>`;
+const arrow=(wd,col)=>`<svg viewBox="0 0 20 20" aria-hidden="true" style="transform:rotate(${(wd??0)+180}deg)"><path d="M10 1.5 16 17 10 13.6 4 17Z" fill="${col}"/></svg>`;
 const clock=`<svg viewBox="0 0 24 24" fill="none" stroke="var(--aqua-d)" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
 const PHOTOGS=[
   {id:"lucia",name:"Lucía Ferreira",user:"luciaenelagua",color:"#13a8c2",zone:"La Pedrera",cover:5501},
@@ -322,7 +359,7 @@ const PHOTOGS=[
 ];
 const ph=id=>PHOTOGS.find(p=>p.id===id);
 const initials=n=>n.split(" ").map(x=>x[0]).join("").slice(0,2);
-const today=new Date();today.setHours(0,0,0,0);
+const today=(()=>{const d=nowUY();d.setHours(0,0,0,0);return d;})();
 const DIAS=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const dayAt=k=>{const d=new Date(today);d.setDate(d.getDate()-k);return d;};
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -376,7 +413,7 @@ function spark(F,d,sel){const hs=F.hours.slice(d*24,d*24+24),max=Math.max(1.6,..
   return `<svg class="sp" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Altura de ola hora por hora, ${DIAS_F(d)}">${hs.map((x,c)=>`<rect x="${c*w+.4}" y="${40-x.h/max*38}" width="${w-.8}" height="${x.h/max*38}" rx="1" fill="${GR[x.g][1]}" opacity="${c===sel?1:d===0&&c<H0?.12:(c<6||c>=20)?.25:.45}"/>`).join("")}</svg>`;}
 
 // ============ Estado, ruteo y transiciones ============
-const S={day:0,hr:new Date().getHours(),open:new Set(),beach:"",k:0,sess:SESSIONS[0],photog:PHOTOGS[0],zone:"Todas",step:1,uploads:[],uBeach:"La Pedrera",uK:0,price:350,mp:false,vi:0};
+const S={day:0,hr:H0,open:new Set(),beach:"",k:0,sess:SESSIONS[0],photog:PHOTOGS[0],zone:"Todas",step:1,uploads:[],uBeach:"La Pedrera",uK:0,price:350,mp:false,vi:0};
 const RM=matchMedia("(prefers-reduced-motion: reduce)");
 const app=document.getElementById("app"),V={};
 function render(){const r=(location.hash||"#inicio").slice(1);const v=V[r]?r:"inicio";const o=V[v]();
@@ -407,7 +444,7 @@ function sea(){const cv=document.getElementById("sea");if(!cv)return;cancelAnima
 V.inicio=()=>{const best0=[...FC].sort((a,b)=>at(b,H0).sc-at(a,H0).sc)[0],bo=bestOf(best0,0),best={...at(best0,H0),b:best0.b,best:`${bo.clk}–${bo.clk+3} h`};return{url:"olas.uy",sec:"",html:`
   <div class="hero">
     <canvas id="sea" aria-hidden="true"></canvas>
-    <div><h1>Hoy hay <span>olas.</span></h1></div>
+    <div><h1>${best.h<.3?"Hoy está <span>plano.</span>":"Hoy hay <span>olas.</span>"}</h1></div>
     <div>
       <a class="best" href="#olas"><b class="tab">${m1(best.h)}<small> m</small></b><span><span class="pill" style="--c:${GR[best.g][1]}">${GR[best.g][0]}</span><br><b style="font:700 18px var(--body);letter-spacing:0">${best.b}</b> <span class="mut">· ${best.best}</span></span></a>
       <div class="cta"><a class="btn" href="#olas">Ver olas</a><a class="btn coral" href="#fotos">Buscar mis fotos</a></div>
@@ -415,7 +452,7 @@ V.inicio=()=>{const best0=[...FC].sort((a,b)=>at(b,H0).sc-at(a,H0).sc)[0],bo=bes
   </div>
   <section><div class="sh"><h2>Ahora</h2><a href="#olas">Todas →</a></div>
     <div class="rail">${[...FC].sort((a,b)=>at(b,H0).sc-at(a,H0).sc).slice(0,10).map(F=>{const f=at(F,H0);return `<a class="spot" href="#olas"><span class="top"><span style="font-weight:700;line-height:1.15">${F.b}</span><span class="h tab" style="font-size:30px;white-space:nowrap">${m1(f.h)}<small> m</small></span></span><span class="sc tab" style="--c:${GR[f.g][1]}">⭐ ${m1(f.sc)}<small>/10</small></span><span class="mini tab"><span>${clock}${f.per} s</span><span style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}</span></span></a>`;}).join("")}</div></section>
-  <section><div class="sh"><h2>Recién subidas</h2><a href="#fotos">Buscar →</a></div>
+  <section><div class="sh"><h2>Recién subidas <span class="pill" style="vertical-align:middle;font-family:var(--body);letter-spacing:0">Ejemplo</span></h2><a href="#fotos">Buscar →</a></div>
     <div class="rail">${SESSIONS.map(s=>`<button class="shot" data-go="sesion" data-sess="${s.id}" aria-label="${s.beach}, ${dayName(s.k)}"><img src="${photo(s.seed*100+3,true)}" alt="" loading="lazy"><div class="wm"></div><span class="cap"><span>${s.beach}<br><small>${dayName(s.k)} · ${s.from}</small></span><small>${s.n} 📷</small></span></button>`).join("")}</div></section>
   <section class="sell"><div><h2>¿Sacás fotos de surf?</h2><p class="mut" style="margin-top:8px">Subilas, poné tu precio y cobrá con Mercado Pago.</p></div><a class="btn" href="#vender">Empezar a vender</a></section>`,after:sea};};
 
@@ -424,7 +461,7 @@ function waveCard(F,inSheet){const d=S.day,hr=S.hr,f=at(F,d*24+hr),open=inSheet|
     <span class="top"><span><b><button class="fav" data-fav="${F.b}" aria-pressed="${fv}" aria-label="${fv?"Quitar de":"Agregar a"} tus playas">${fv?"♥":"♡"}</button>${F.b}</b><span class="pill" style="--c:${GR[f.g][1]}">${GR[f.g][0]}</span></span><span class="hbig tab">${m1(f.h)}<small> m</small></span></span>
     <span class="facts tab"><span class="fact score" style="--c:${GR[f.g][1]}">⭐ ${m1(f.sc)}<small>/10</small></span><span class="fact">${clock}${f.per}<small>s</small></span><span class="fact" style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}<small>km/h</small></span></span>
     <span class="hours">${spark(F,d,hr)}<span class="hl" aria-hidden="true">${[0,6,12,18].map(k=>`<span style="left:${k/24*100}%">${k} h</span>`).join("")}</span></span>
-    <span class="more" style="flex-direction:column"><span class="wk7" aria-label="Mejor puntaje de cada día">${[0,1,2,3,4,5,6].map(k=>{const x=bestOf(F,k);return `<button data-day="${k}" aria-pressed="${k===d}" style="--c:${GR[x.g][1]}" aria-label="${DIAS_F(k)}: mejor puntaje ${m1(x.sc)}">${k===1?"Mañ":DIAS_F(k).split(" ")[0]}<b class="tab">${m1(x.sc)}</b></button>`;}).join("")}</span>
+    <span class="more" style="flex-direction:column"><span class="wk7" aria-label="Mejor puntaje de cada día">${[...Array(NDAYS).keys()].map(k=>{const x=bestOf(F,k);return `<button data-day="${k}" aria-pressed="${k===d}" style="--c:${GR[x.g][1]}" aria-label="${DIAS_F(k)}: mejor puntaje ${m1(x.sc)}">${k===1?"Mañ":DIAS_F(k).split(" ")[0]}<b class="tab">${m1(x.sc)}</b></button>`;}).join("")}</span>
       <span class="row" style="gap:8px"><span class="kv">Mejor ${DIAS_F(d).toLowerCase()}<b>${bo.clk}–${bo.clk+3} h</b></span><span class="kv">Viento<b>${WK[f.wk].t}</b></span><span class="kv" data-go="fotos" data-beach="${F.b}" style="background:var(--sand)">Fotos<b>Ver →</b></span></span></span></div>`;}
 
 // ---- Mapa con zoom (rueda, pellizco, arrastre y botones)
@@ -502,9 +539,9 @@ V.olas=()=>{const idx=S.day*24+S.hr,byScore=(a,b)=>at(b,idx).sc-at(a,idx).sc;
     <div class="mctl"><button id="zin" aria-label="Acercar">+</button><button id="zout" aria-label="Alejar">−</button><button id="zfit" aria-label="Ver toda la costa">⤢</button></div>
     <span class="mhint">Tocá una playa</span></div>
   <div class="ctrls">
-    <div class="rail days" id="days">${[0,1,2,3,4,5,6].map(k=>`<button class="chip" data-d="${k}" aria-pressed="${k===S.day}">${DIAS_F(k)}</button>`).join("")}</div>
+    <div class="rail days" id="days">${[...Array(NDAYS).keys()].map(k=>`<button class="chip" data-d="${k}" aria-pressed="${k===S.day}">${DIAS_F(k)}</button>`).join("")}</div>
     <div class="timebar"><span aria-hidden="true">🕐</span><b id="tL" class="tab">${clkLbl(S.day,S.hr)}</b><input type="range" id="tR" min="${S.day?0:H0}" max="23" value="${S.hr}" aria-label="Hora del pronóstico"></div>
-    <div class="legend" aria-label="Referencias"><span>⭐ Puntaje</span>${Object.values(WK).map(w=>`<span>${arrow(0,w.c)}${w.t}</span>`).join("")}<span>${clock}Período</span></div>
+    <div class="legend" aria-label="Referencias"><span>⭐ Puntaje</span>${Object.values(WK).map(w=>`<span>${arrow(0,w.c)}${w.t}</span>`).join("")}<span>${clock}Período</span><span style="margin-left:auto">${srcTxt()}</span></div>
   </div>
   <h2 style="margin:10px 0 4px">Tus playas</h2>
   ${favs.length?`<div class="subh">♥ Favoritas</div><div class="waves">${favs.map(F=>waveCard(F)).join("")}</div>`:`<div class="fav-empty" style="margin-top:10px">Tocá ♡ en una playa para tenerla siempre acá</div>`}
@@ -519,7 +556,7 @@ cardEvents(document.getElementById("app"));
 V.fotos=()=>{const list=SESSIONS.filter(s=>(!S.beach||s.beach===S.beach)&&s.k===S.k);const withPh=[...new Set(SESSIONS.map(s=>s.beach))];
   const order=["",...withPh,...BEACHES.filter(b=>!withPh.includes(b))];
   return{url:`olas.uy/fotos/${S.beach?slug(S.beach):"uruguay"}/${iso(dayAt(S.k))}`,title:"Fotos de surf",sec:"fotos",html:`
-  <p class="ask">¿Dónde surfeaste?</p>
+  <p class="ask">¿Dónde surfeaste? <span class="pill" style="vertical-align:middle;font-family:var(--body);letter-spacing:0">Fotos de ejemplo</span></p>
   <div class="rail" id="beachR">${order.map(b=>{const s=SESSIONS.find(x=>x.beach===b);return `<button class="bchip" data-b="${b}" aria-pressed="${b===S.beach}"><i style="${s?`background-image:url(${photo(s.seed*100+7)})`:""}">${b?(s?"":b[0]):"🇺🇾"}</i>${b||"Todas"}</button>`;}).join("")}</div>
   <p class="ask" style="margin-top:18px">¿Cuándo?</p>
   <div class="rail" id="dayR">${[0,1,2,3,4,5,6].map(k=>`<button class="chip" data-k="${k}" aria-pressed="${k===S.k}">${dayName(k)}</button>`).join("")}</div>
@@ -614,7 +651,17 @@ document.getElementById("vBuy").onclick=()=>{const s=S.sess;
     document.getElementById("dl").onclick=()=>toast("En la web real se descarga el original");
     document.getElementById("more").onclick=()=>{closeViewer();};};};
 
-render();
+// ============ Arranque: muestra lo guardado al instante y actualiza en segundo plano ============
+function repaint(){const h=location.hash||"#inicio";if((h==="#inicio"||h==="#olas")&&!vw.classList.contains("on"))render();paintSheet();}
+async function refresh(paint){try{const D=await loadLive();saveCache(D);if(build(D)){SRC={kind:"live",at:D.at};if(paint)repaint();}}
+  catch(e){if(SRC.kind==="cache"){SRC.kind="offline";if(paint)repaint();}}}
+async function boot(){const c=loadCache();
+  if(c&&build(c)){SRC={kind:"cache",at:c.at};render();refresh(true);}
+  else{app.innerHTML=`<div class="empty" style="margin-top:30px"><h3>Cargando olas…</h3></div>`;await refresh(false);
+    if(!FC.length){FC=sampleFC();NDAYS=7;SRC={kind:"sample",at:0};}render();}
+  const stale=()=>!document.hidden&&Date.now()-SRC.at>30*60e3;
+  setInterval(()=>{if(stale())refresh(true);},60e3);document.addEventListener("visibilitychange",()=>{if(stale())refresh(true);});addEventListener("online",()=>refresh(true));}
+boot();
 </script>
 </body>
 </html>

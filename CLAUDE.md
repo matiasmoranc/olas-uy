@@ -10,9 +10,13 @@
 - `index.html` tiene `noindex` mientras sea una maqueta con datos de ejemplo. Sacarlo cuando el contenido sea real.
 - `maqueta/index.html` solo redirige a la raíz (link viejo).
 
-## Estado actual: maqueta navegable
+## Estado actual
 
-Todo está en `index.html` (HTML + CSS + JS, sin build). Hoy usa **datos de ejemplo** generados en el propio archivo (pronóstico, fotógrafos, sesiones y ventas inventados; las fotos se dibujan con canvas en `photo()`). El pronóstico viejo con datos reales de Open-Meteo se eliminó, pero está en el historial de git (commit `4f82c75` y anteriores) y su lógica sirve de referencia: llamada única a Open-Meteo Marine + Forecast para todas las playas, `effHeight()`/`expo()` (altura en la playa según `facing`), `evaluate()` (puntaje), amanecer/atardecer, caché en `localStorage`, hora de Uruguay.
+Todo está en `index.html` (HTML + CSS + JS, sin build).
+
+- **Pronóstico: datos REALES** de Open-Meteo (Marine API: altura, dirección y período de ola, mar de fondo, mar de viento; Forecast API: viento). Una sola llamada por API para todas las playas (coordenadas separadas por coma), 7 días, `timezone=America/Montevideo`. `SPOT` = punto en el mar donde se pide el pronóstico + `facing` de cada playa. `effH()`/`expo()` = altura en la playa según de dónde viene el mar; `windK()` = terral/calmo/cruzado/de mar; `score()` = puntaje 0–10; calificación `g` (0 Plano … 4 Muy bueno, 5 Peligroso si ola ≥ 3 m o viento ≥ 50 km/h). `build()` arma `FC` desde hoy 0:00 (hora de Uruguay, `nowUY()`), índice = día*24 + hora.
+- Arranque (`boot()`): muestra al instante el último pronóstico guardado (`localStorage` `olasuy-fc`) y actualiza en segundo plano; reintenta 3 veces. Sin conexión usa lo guardado ("Sin conexión · datos de las HH:MM"); si nunca cargó, datos de ejemplo (`sampleFC()`), avisado. Se actualiza solo cada 30 min, al volver a la pestaña y al recuperar internet. La fuente y la hora se ven al lado de la leyenda.
+- **Fotos, fotógrafos y ventas: todavía de EJEMPLO** (marcado con una etiqueta "Ejemplo"); las fotos se dibujan con canvas en `photo()`. Falta el servidor (ver Pendientes).
 
 Ruteo por hash (`#inicio`, `#olas`, `#fotos`, `#sesion`, `#fotografo`, `#vender`); objeto `V` con una función por pantalla que devuelve `{url, title, sec, html, after}`. `url` es la dirección "para Google" que tendría cada pantalla en la versión real.
 
@@ -42,6 +46,5 @@ Abrir `index.html` en el navegador (o el link de github.io). Para el mapa no hac
 
 ## Pendientes / ideas
 
-- Conectar la sección Olas a datos reales de Open-Meteo (reutilizar la lógica del pronóstico viejo).
 - Versión real de fotos: servidor, cuentas de fotógrafos, subida a R2 con marca de agua, pagos con Mercado Pago.
 - Verificar `facing` y posiciones de las playas con conocimiento local.
