@@ -63,8 +63,9 @@ Deno.serve(async (req) => {
         external_reference: orderId,
         notification_url: `${env("SUPABASE_URL")}/functions/v1/mp-webhook?ph=${photographerId}`,
         back_urls: {
-          success: `${SITE()}?orden=${orderId}#listo`,
-          pending: `${SITE()}?orden=${orderId}#listo`,
+          // Sin "#": Mercado Pago lo borra al volver. El sitio detecta ?orden= y abre la descarga.
+          success: `${SITE()}?orden=${orderId}`,
+          pending: `${SITE()}?orden=${orderId}`,
           failure: `${SITE()}#fotos`,
         },
         auto_return: "approved",
