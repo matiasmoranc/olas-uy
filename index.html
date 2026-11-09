@@ -814,7 +814,9 @@ async function publishSession(){UP.busy=true;UP.done=0;UP.total=UP.files.length;
     const{data:ses,error}=await SB.from("sessions").insert({photographer_id:ME.id,beach:UP.beach,day,start_time:UP.from,end_time:UP.to,price:UP.price}).select().single();if(error)throw error;
     const put=(url,body,type)=>fetch(url,{method:"PUT",body,headers:{"Content-Type":type}}).then(r=>{if(!r.ok)throw new Error("No se pudo subir una foto ("+r.status+")");});
     for(let i=0;i<UP.files.length;i+=8){const chunk=UP.files.slice(i,i+8);
-      const meta=await Promise.all(chunk.map(async f=>({ext:EXT_OF[f.type]||"jpg",taken_at:(await exifTime(f))||hm(f.lastModified)})));
+      // Hora de la cámara; si no hay o cae fuera del horario de la sesión, va al inicio de la sesión
+      const inSes=t=>{if(!t)return null;const v=toMin(t);return v>=toMin(UP.from)-30&&v<=toMin(UP.to)+30?t:null;};
+      const meta=await Promise.all(chunk.map(async f=>({ext:EXT_OF[f.type]||"jpg",taken_at:inSes(await exifTime(f))||inSes(hm(f.lastModified))||UP.from.replace(/^0/,"")})));
       const{data:urls,error:e2}=await SB.functions.invoke("r2-upload",{body:{session_id:ses.id,files:meta}});if(e2)throw new Error("No se pudo preparar la subida: "+(await fnMsg(e2)));
       for(let j=0;j<chunk.length;j++){const f=chunk[j],u=urls[j];
         const pv=await rendition(f,1600,.82),th=await rendition(f,520,.72);
