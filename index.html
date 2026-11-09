@@ -41,6 +41,12 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background
 header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:12px}
 .logo{display:flex;align-items:center;gap:8px;font:800 23px/1 var(--display);letter-spacing:-.03em;color:var(--ink);text-decoration:none}
 .logo svg{width:32px;height:32px}
+.acct{border:0;border-radius:999px;padding:8px 14px;font-weight:700;font-size:14px;background:var(--ink);color:var(--white);white-space:nowrap;flex:0 0 auto}
+.acct.av{width:36px;height:36px;padding:0;background:var(--aqua);font-family:var(--display);font-size:15px}
+.mybuys{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.mybuys a{position:relative;display:block;border-radius:14px;overflow:hidden;aspect-ratio:3/2;background:var(--mist)}
+.mybuys img{width:100%;height:100%;object-fit:cover;display:block}
+.mybuys span{position:absolute;left:6px;bottom:6px;background:rgba(255,255,255,.92);border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--ink)}
 .url{font:500 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mut);background:var(--white);border:1px solid var(--line);border-radius:999px;padding:6px 10px;max-width:55vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Dock flotante */
@@ -263,9 +269,10 @@ section{margin-top:44px}
 </head>
 <body>
 
+<script src="config.js"></script>
 <header class="top"><div class="wrap">
   <a class="logo" href="#inicio" aria-label="Olas UY, inicio"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M2 20c4 0 5-9 12-9 5 0 6 4 3 5-2 .8-4-1-3-2.5" stroke="#13a8c2" stroke-width="2.8" stroke-linecap="round"/><path d="M2 26c3 0 4-2 7-2s4 2 7 2 4-2 7-2 4 2 7 2" stroke="#ff6f4f" stroke-width="2.4" stroke-linecap="round"/></svg>olas.uy</a>
-  <span class="url" id="url" title="Dirección de esta pantalla (para Google)">olas.uy</span>
+  <span class="row" style="gap:8px;flex-wrap:nowrap;min-width:0"><span class="url" id="url" title="Dirección de esta pantalla (para Google)">olas.uy</span><button class="acct" id="acct" hidden>Entrar</button></span>
 </div></header>
 
 <main class="wrap" id="app"></main>
@@ -796,7 +803,36 @@ async function boot(){const c=loadCache();
     if(!FC.length){FC=sampleFC();NDAYS=7;SRC={kind:"sample",at:0};}render();}
   const stale=()=>!document.hidden&&Date.now()-SRC.at>30*60e3;
   setInterval(()=>{if(stale())refresh(true);},60e3);document.addEventListener("visibilitychange",()=>{if(stale())refresh(true);});addEventListener("online",()=>refresh(true));}
-boot();
+// ============ Cuentas (Supabase): entrar con Google y "Mis compras" ============
+// Solo se activa si config.js tiene los datos del proyecto. Sin eso, el sitio funciona igual que antes.
+const CFG=window.OLAS_CONFIG||{};let SB=null,ME=null;
+const acctBtn=document.getElementById("acct");
+function paintAcct(){if(!SB){acctBtn.hidden=true;return;}acctBtn.hidden=false;
+  if(ME){const n=(ME.user_metadata?.full_name||ME.email||"?").trim();acctBtn.textContent=n[0].toUpperCase();acctBtn.classList.add("av");acctBtn.setAttribute("aria-label","Tu cuenta");}
+  else{acctBtn.textContent="Entrar";acctBtn.classList.remove("av");acctBtn.removeAttribute("aria-label");}}
+async function signIn(){await SB.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin+location.pathname+location.hash}});}
+async function openAccount(){
+  sheet.innerHTML=`<div class="grab"></div><h2>Tus fotos</h2><p class="mut">${ME.email}</p><div id="buys" class="mybuys"><p class="mut">Cargando…</p></div>
+    <button class="btn soft block" id="out">Salir</button>`;
+  sheet.classList.add("on");scrim.classList.add("on");
+  document.getElementById("out").onclick=async()=>{await SB.auth.signOut();closeSheet();toast("Saliste de tu cuenta");};
+  const{data,error}=await SB.from("purchases").select("download_token, status, photo:photos(preview_key, taken_at, session:sessions(beach, day))").eq("status","paid").order("paid_at",{ascending:false});
+  const el=document.getElementById("buys");
+  if(error){el.innerHTML='<p class="mut">No se pudieron cargar tus fotos.</p>';return;}
+  if(!data.length){el.innerHTML='<p class="mut">Todavía no compraste fotos.</p>';return;}
+  const base=(CFG.photosUrl||"").replace(/\/$/,"");
+  el.innerHTML=data.map(x=>`<a href="${CFG.supabaseUrl}/functions/v1/download?t=${x.download_token}" target="_blank" rel="noopener" aria-label="Descargar foto de ${x.photo?.session?.beach}"><img src="${base}/${x.photo?.preview_key}" alt="" loading="lazy"><span>⬇ ${x.photo?.session?.beach||""}</span></a>`).join("");}
+acctBtn.onclick=()=>ME?openAccount():signIn();
+async function initAccounts(){
+  if(!CFG.supabaseUrl||!CFG.supabaseAnonKey)return;
+  try{await new Promise((ok,ko)=>{const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";sc.onload=ok;sc.onerror=ko;document.head.appendChild(sc);});
+    SB=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey);
+    const{data}=await SB.auth.getSession();ME=data.session?.user||null;paintAcct();
+    // Al entrar: sumar a la cuenta las compras hechas antes solo con este mail
+    if(ME)SB.rpc("claim_purchases").then(()=>{},()=>{});
+    SB.auth.onAuthStateChange((ev,ses)=>{ME=ses?.user||null;paintAcct();if(ev==="SIGNED_IN"){SB.rpc("claim_purchases").then(()=>{},()=>{});}});
+  }catch(e){console.warn("No se pudo cargar el inicio de sesión",e);}}
+boot();initAccounts();
 </script>
 </body>
 </html>
