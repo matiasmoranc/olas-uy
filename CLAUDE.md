@@ -2,7 +2,11 @@
 
 Herramienta web de pronóstico de olas para playas de Uruguay, pensada para surfistas expertos y para usuarios comunes. Interfaz en español rioplatense (voseo: "tocá", "deslizá").
 
-Publicada con GitHub Pages en el dominio propio **https://olas.uy** (archivo `CNAME`; rama `main`, carpeta raíz). Cada push a `main` se publica solo en 1–2 minutos. El dominio está registrado en Hosting Montevideo; su DNS apunta a GitHub Pages (registros A de `@` a 185.199.108.153, .109.153, .110.153 y .111.153, y CNAME de `www` a `matiasmoranc.github.io`).
+Publicada con GitHub Pages en https://matiasmoranc.github.io/olas-uy/ (rama `main`, carpeta raíz). Cada push a `main` se publica solo en 1–2 minutos.
+
+**Dominio olas.uy**: registrado en Hosting Montevideo, DNS en Cloudflare apuntando a GitHub Pages (A de `@` a 185.199.108–111.153, CNAME `www` → `matiasmoranc.github.io`). Por decisión del usuario, **por ahora olas.uy queda sin contenido**: no hay archivo `CNAME` en el repo. Para activarlo, volver a agregar `CNAME` con `olas.uy` y configurar el dominio en Settings → Pages.
+
+**Maqueta del sitio nuevo** ("la casa del surf uruguayo": pronóstico + venta de fotos de surf + panel de fotógrafos) en `maqueta/index.html` → https://matiasmoranc.github.io/olas-uy/maqueta/. Es un diseño navegable con datos de ejemplo (noindex), no la versión real. Decisiones tomadas: diseño claro y con poco texto; pagos con Mercado Pago dividido (el pago va directo al fotógrafo), comisión 15%; búsqueda de fotos por playa, día y hora; mapa con costa real (GSHHG alta resolución), favoritas y más vistas.
 
 ## Estructura
 
