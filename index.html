@@ -533,12 +533,12 @@ function setDay(d){S.sel={};S.day=d;if(d===0&&S.hr<H0)S.hr=H0;if(d>0&&S.hr<6)S.h
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Tipo de ola según altura, período y viento: define la forma de la animación
 function waveType(x){const h=x.h||0,p=x.per||0,ws=x.ws||0,k=x.wk;
-  if(h<0.3)return{k:"plano",lip:0,t:"Mar plano",d:"Casi sin olas. Ideal para nadar o hacer paddle."};
-  if(h>=2.8)return{k:"bomba",lip:1.2,t:"Olas grandes y pesadas",d:"Rompen de golpe y con mucha fuerza. Solo para expertos."};
+  if(h<0.3)return{k:"plano",lip:0,t:"Mar plano",d:"Casi sin olas."};
+  if(h>=2.8)return{k:"bomba",lip:1.2,t:"Olas grandes y pesadas",d:"Rompen de golpe y con mucha fuerza."};
   if((k==="mar"&&ws>=15)||p<5)return{k:"picado",lip:0,t:"Mar picado",d:"El viento de mar desarma las olas: rompen desordenadas y con espuma."};
   if((k==="terral"||k==="calmo")&&p>=9&&h>=0.9)return{k:"tubo",lip:1,t:"Ola hueca, con tubo",d:"Con terral y buen período la ola se para y la cresta se tira adelante."};
   if(k!=="mar"&&p>=7.5&&h>=0.6)return{k:"formada",lip:0.55,t:"Ola formada",d:"Limpia y ordenada: rompe desde un pico y abre a los costados."};
-  return{k:"espuma",lip:0,t:"Ola de espuma",d:"Rompe suave, derramando espuma. Ideal para aprender."};}
+  return{k:"espuma",lip:0,t:"Ola de espuma",d:"Rompe suave, derramando espuma."};}
 let wc=null,wW=0,wH=0,wCfg=null,wParts=[],wSpl=-1,simB=null,simRAF=0,simLast=0;
 function sizeCanvas(cv,ctx){const r=cv.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);return[r.width,r.height];}
 function drawPerson(c,x,yF,hp,label){
