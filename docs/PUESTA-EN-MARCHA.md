@@ -86,3 +86,16 @@ Después: pestaña **Actions → Servidor (Supabase) → Run workflow**. Eso cre
 ## 6. Avisame
 
 Pasame por el chat **solo los datos públicos**: Project URL, anon key y la URL pública de las fotos. Los pongo en `config.js` y aparece el botón **Entrar** en el sitio.
+
+## 7. Entrar con Apple (opcional, requiere Apple Developer) · 15 min
+
+En **developer.apple.com → Certificates, Identifiers & Profiles**:
+
+1. **Identifiers → +  → App IDs → App**: descripción `Olas UY`, Bundle ID `uy.olas.app`, marcar **Sign In with Apple** → Register.
+2. **Identifiers → + → Services IDs**: descripción `Olas UY Web`, identificador `uy.olas.web` → Register. Abrirlo, marcar **Sign In with Apple → Configure**:
+   - Primary App ID: `uy.olas.app`
+   - Domains: `gcakonxuqpcdpydrvyhz.supabase.co`
+   - Return URLs: `https://gcakonxuqpcdpydrvyhz.supabase.co/auth/v1/callback`
+3. **Keys → +**: nombre `Olas UY Sign in with Apple`, marcar **Sign in with Apple → Configure** (App ID `uy.olas.app`) → Register → **descargar el archivo .p8** (se baja una sola vez). Anotar el **Key ID** y el **Team ID** (arriba a la derecha).
+4. En **Supabase → Authentication → Sign In / Providers → Apple**: activar, **Client IDs** = `uy.olas.web`, y en **Secret Key** pegar el secreto generado con la herramienta de la documentación de Supabase ("Generate a client secret": Team ID + Key ID + Services ID + archivo .p8). **El secreto vence a los 6 meses**: hay que generarlo de nuevo.
+5. Avisar para poner `apple: true` en `config.js`.
