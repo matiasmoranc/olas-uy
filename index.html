@@ -112,6 +112,7 @@ section{margin-top:44px}
 .wv .sp{width:100%;height:42px;display:block;cursor:pointer;touch-action:none}
 .hl{position:relative;height:14px;font-size:11.5px;font-weight:600;color:var(--mut)}
 .hl span{position:absolute;top:0;white-space:nowrap}
+.tpill{border:0;border-radius:999px;padding:4px 9px;font-weight:700;font-size:12.5px;background:var(--ink);color:var(--white);white-space:nowrap}
 .wv .more{display:none;gap:8px;flex-wrap:wrap}
 .wv.open .more{display:flex}
 .wv>*{min-width:0}
@@ -413,7 +414,7 @@ function spark(F,d,sel){const hs=F.hours.slice(d*24,d*24+24),max=Math.max(1.6,..
   return `<svg class="sp" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Altura de ola hora por hora, ${DIAS_F(d)}">${hs.map((x,c)=>`<rect x="${c*w+.4}" y="${40-x.h/max*38}" width="${w-.8}" height="${x.h/max*38}" rx="1" fill="${GR[x.g][1]}" opacity="${c===sel?1:d===0&&c<H0?.12:(c<6||c>=20)?.25:.45}"/>`).join("")}</svg>`;}
 
 // ============ Estado, ruteo y transiciones ============
-const S={day:0,hr:H0,open:new Set(),beach:"",k:0,sess:SESSIONS[0],photog:PHOTOGS[0],zone:"Todas",step:1,uploads:[],uBeach:"La Pedrera",uK:0,price:350,mp:false,vi:0};
+const S={sel:{},day:0,hr:H0,open:new Set(),beach:"",k:0,sess:SESSIONS[0],photog:PHOTOGS[0],zone:"Todas",step:1,uploads:[],uBeach:"La Pedrera",uK:0,price:350,mp:false,vi:0};
 const RM=matchMedia("(prefers-reduced-motion: reduce)");
 const app=document.getElementById("app"),V={};
 function render(){const r=(location.hash||"#inicio").slice(1);const v=V[r]?r:"inicio";const o=V[v]();
@@ -456,9 +457,9 @@ V.inicio=()=>{const best0=[...FC].sort((a,b)=>at(b,H0).sc-at(a,H0).sc)[0],bo=bes
     <div class="rail">${SESSIONS.map(s=>`<button class="shot" data-go="sesion" data-sess="${s.id}" aria-label="${s.beach}, ${dayName(s.k)}"><img src="${photo(s.seed*100+3,true)}" alt="" loading="lazy"><div class="wm"></div><span class="cap"><span>${s.beach}<br><small>${dayName(s.k)} · ${s.from}</small></span><small>${s.n} 📷</small></span></button>`).join("")}</div></section>
   <section class="sell"><div><h2>¿Sacás fotos de surf?</h2><p class="mut" style="margin-top:8px">Subilas, poné tu precio y cobrá con Mercado Pago.</p></div><a class="btn" href="#vender">Empezar a vender</a></section>`,after:sea};};
 
-function waveCard(F,inSheet){const d=S.day,hr=S.hr,f=at(F,d*24+hr),open=inSheet||S.open.has(F.b),bo=bestOf(F,d),fv=FAVS.has(F.b);
+function waveCard(F,inSheet){const own=S.sel[F.b],[d,hr]=own||[S.day,S.hr],f=at(F,d*24+hr),open=inSheet||S.open.has(F.b),bo=bestOf(F,d),fv=FAVS.has(F.b);
   return `<div class="wv${open?" open":""}" data-b="${F.b}" ${inSheet?"":`tabindex="0" role="button" aria-expanded="${open}"`} aria-label="${F.b}, ${clkLbl(d,hr)}: ${m1(f.h)} metros, puntaje ${m1(f.sc)} de 10, ${GR[f.g][0]}, período ${f.per} segundos, viento ${WK[f.wk].t.toLowerCase()} ${f.ws} km/h">
-    <span class="top"><span><b><button class="fav" data-fav="${F.b}" aria-pressed="${fv}" aria-label="${fv?"Quitar de":"Agregar a"} tus playas">${fv?"♥":"♡"}</button>${F.b}</b><span class="pill" style="--c:${GR[f.g][1]}">${GR[f.g][0]}</span></span><span class="hbig tab">${m1(f.h)}<small> m</small></span></span>
+    <span class="top"><span><b><button class="fav" data-fav="${F.b}" aria-pressed="${fv}" aria-label="${fv?"Quitar de":"Agregar a"} tus playas">${fv?"♥":"♡"}</button>${F.b}</b><span class="row" style="gap:6px"><span class="pill" style="--c:${GR[f.g][1]}">${GR[f.g][0]}</span>${own?`<button class="tpill" data-reset="${F.b}" aria-label="Volver a la hora general">🕐 ${clkLbl(d,hr)} ✕</button>`:""}</span></span><span class="hbig tab">${m1(f.h)}<small> m</small></span></span>
     <span class="facts tab"><span class="fact score" style="--c:${GR[f.g][1]}">⭐ ${m1(f.sc)}<small>/10</small></span><span class="fact">${clock}${f.per}<small>s</small></span><span class="fact" style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}<small>km/h</small></span></span>
     <span class="hours">${spark(F,d,hr)}<span class="hl" aria-hidden="true">${[0,6,12,18].map(k=>`<span style="left:${k/24*100}%">${k} h</span>`).join("")}</span></span>
     <span class="more" style="flex-direction:column"><span class="wk7" aria-label="Mejor puntaje de cada día">${[...Array(NDAYS).keys()].map(k=>{const x=bestOf(F,k);return `<button data-day="${k}" aria-pressed="${k===d}" style="--c:${GR[x.g][1]}" aria-label="${DIAS_F(k)}: mejor puntaje ${m1(x.sc)}">${k===1?"Mañ":DIAS_F(k).split(" ")[0]}<b class="tab">${m1(x.sc)}</b></button>`;}).join("")}</span>
@@ -516,18 +517,21 @@ function closeBeach(){bs.classList.remove("on");scrim.classList.remove("on");bsB
 function olasPaint(sort){const t=document.getElementById("tL"),R=document.getElementById("tR");if(t)t.textContent=clkLbl(S.day,S.hr);if(R){R.min=S.day?0:H0;R.value=S.hr;}
   if(sort&&location.hash==="#olas"){render();}else document.querySelectorAll("#app .wv").forEach(el=>{el.outerHTML=waveCard(FC.find(F=>F.b===el.dataset.b));});
   paintSheet();mapDraw();}
-function setDay(d){S.day=d;if(d===0&&S.hr<H0)S.hr=H0;if(d>0&&S.hr<6)S.hr=9;olasPaint(true);}
+function setDay(d){S.sel={};S.day=d;if(d===0&&S.hr<H0)S.hr=H0;if(d>0&&S.hr<6)S.hr=9;olasPaint(true);}
 let dragBars=false;
-const pickBars=e=>{const sv=e.target.closest&&e.target.closest(".sp");if(!sv)return false;const r=sv.getBoundingClientRect();S.hr=Math.max(S.day?0:H0,Math.min(23,Math.floor((e.clientX-r.left)/r.width*24)));olasPaint(false);return true;};
+const paintBeach=b=>{const F=FC.find(x=>x.b===b);document.querySelectorAll(`#app .wv[data-b="${b}"]`).forEach(el=>{el.outerHTML=waveCard(F);});if(bsBeach===b)paintSheet();};
+const pickBars=e=>{const sv=e.target.closest&&e.target.closest(".sp");if(!sv)return false;const card=sv.closest(".wv"),b=card.dataset.b,d=(S.sel[b]||[S.day])[0],r=sv.getBoundingClientRect();
+  const hr=Math.max(d?0:H0,Math.min(23,Math.floor((e.clientX-r.left)/r.width*24)));const cur=S.sel[b];if(!cur||cur[1]!==hr||cur[0]!==d){S.sel[b]=[d,hr];paintBeach(b);}return true;};
 function cardEvents(root){
   root.addEventListener("pointerdown",e=>{if(pickBars(e)){dragBars=true;e.preventDefault();}});
   root.addEventListener("pointermove",e=>{if(dragBars)pickBars(e);});
   root.addEventListener("click",e=>{const fv=e.target.closest("[data-fav]");if(fv){e.stopPropagation();const b=fv.dataset.fav;FAVS.has(b)?FAVS.delete(b):FAVS.add(b);saveFV();toast(FAVS.has(b)?`${b} está en tus playas ♥`:`${b} salió de tus playas`);if(location.hash==="#olas")render();paintSheet();return;}
-    const dd=e.target.closest("[data-day]");if(dd){setDay(+dd.dataset.day);return;}
+    const rs=e.target.closest("[data-reset]");if(rs){e.stopPropagation();delete S.sel[rs.dataset.reset];paintBeach(rs.dataset.reset);return;}
+    const dd=e.target.closest("[data-day]");if(dd){const card=dd.closest(".wv"),b=card.dataset.b,k=+dd.dataset.day,F=FC.find(x=>x.b===b);S.sel[b]=[k,k===0?Math.max(H0,bestOf(F,0).clk):bestOf(F,k).clk];paintBeach(b);return;}
     if(e.target.closest(".sp")||e.target.closest("[data-go]"))return;const w=e.target.closest(".wv");if(!w||root===bs)return;
     const b=w.dataset.b;if(!S.open.has(b))seen(b);S.open.has(b)?S.open.delete(b):S.open.add(b);document.querySelectorAll(`#app .wv[data-b="${b}"]`).forEach(x=>{x.classList.toggle("open",S.open.has(b));x.setAttribute("aria-expanded",S.open.has(b));});});
   root.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){const w=e.target.closest(".wv");if(w&&e.target===w){e.preventDefault();w.click();}}});}
-addEventListener("pointerup",()=>{if(dragBars){dragBars=false;olasPaint(true);}});
+addEventListener("pointerup",()=>{dragBars=false;});
 cardEvents(bs);
 
 V.olas=()=>{const idx=S.day*24+S.hr,byScore=(a,b)=>at(b,idx).sc-at(a,idx).sc;
@@ -548,7 +552,7 @@ V.olas=()=>{const idx=S.day*24+S.hr,byScore=(a,b)=>at(b,idx).sc-at(a,idx).sc;
   ${most.length?`<div class="subh">👀 Las que más mirás</div><div class="waves">${most.map(F=>waveCard(F)).join("")}</div>`:""}
   <section style="margin-top:30px"><h2 style="margin-bottom:12px">Todas</h2><div class="waves">${rest.map(F=>waveCard(F)).join("")}</div></section>`,
   after(){mapWire();
-    const R=document.getElementById("tR");R.oninput=()=>{S.hr=+R.value;olasPaint(false);};R.onchange=()=>olasPaint(true);
+    const R=document.getElementById("tR");R.oninput=()=>{S.sel={};S.hr=+R.value;olasPaint(false);};R.onchange=()=>olasPaint(true);
     document.getElementById("days").onclick=e=>{const b=e.target.closest("[data-d]");if(b)setDay(+b.dataset.d);};
     const sel=document.querySelector('#days [aria-pressed="true"]');sel&&sel.scrollIntoView({inline:"center",block:"nearest"});}};};
 cardEvents(document.getElementById("app"));
