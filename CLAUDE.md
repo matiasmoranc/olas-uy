@@ -1,36 +1,47 @@
 # Olas UY
 
-Herramienta web de pronóstico de olas para playas de Uruguay, pensada para surfistas expertos y para usuarios comunes. Interfaz en español rioplatense (voseo: "tocá", "deslizá").
+"La casa del surf uruguayo": pronóstico de olas por playa + lugar donde los surfistas encuentran y compran las fotos que les sacaron en el agua + panel para que los fotógrafos suban y vendan sus fotos. Interfaz en español rioplatense (voseo: "tocá", "deslizá"). Prioridades del usuario: **UX/UI muy simple, poco texto, diseño claro (colores claros), dinámico, y buen SEO**.
 
-Publicada con GitHub Pages en https://matiasmoranc.github.io/olas-uy/ (rama `main`, carpeta raíz). Cada push a `main` se publica solo en 1–2 minutos.
+## Publicación
 
-**Dominio olas.uy**: registrado en Hosting Montevideo, DNS en Cloudflare apuntando a GitHub Pages (A de `@` a 185.199.108–111.153, CNAME `www` → `matiasmoranc.github.io`). Por decisión del usuario, **por ahora olas.uy queda sin contenido**: no hay archivo `CNAME` en el repo. Para activarlo, volver a agregar `CNAME` con `olas.uy` y configurar el dominio en Settings → Pages.
+- GitHub Pages: https://matiasmoranc.github.io/olas-uy/ (rama `main`, carpeta raíz). Cada push a `main` se publica solo en 1–2 minutos.
+- **Por ahora el sitio solo se ve desde el link de github.io.** No hay archivo `CNAME`, así que **olas.uy no muestra nada** (decisión del usuario).
+- Dominio olas.uy: registrado en Hosting Montevideo, DNS en Cloudflare apuntando a GitHub Pages (A de `@` a 185.199.108–111.153, CNAME `www` → `matiasmoranc.github.io`, nube gris). Para activarlo: agregar `CNAME` con `olas.uy` y configurar el dominio en Settings → Pages.
+- `index.html` tiene `noindex` mientras sea una maqueta con datos de ejemplo. Sacarlo cuando el contenido sea real.
+- `maqueta/index.html` solo redirige a la raíz (link viejo).
 
-**Maqueta del sitio nuevo** ("la casa del surf uruguayo": pronóstico + venta de fotos de surf + panel de fotógrafos) en `maqueta/index.html` → https://matiasmoranc.github.io/olas-uy/maqueta/. Es un diseño navegable con datos de ejemplo (noindex), no la versión real. Decisiones tomadas: diseño claro y con poco texto; pagos con Mercado Pago dividido (el pago va directo al fotógrafo), comisión 15%; búsqueda de fotos por playa, día y hora; mapa con costa real (GSHHG alta resolución), favoritas y más vistas.
+## Estado actual: maqueta navegable
 
-## Estructura
+Todo está en `index.html` (HTML + CSS + JS, sin build). Hoy usa **datos de ejemplo** generados en el propio archivo (pronóstico, fotógrafos, sesiones y ventas inventados; las fotos se dibujan con canvas en `photo()`). El pronóstico viejo con datos reales de Open-Meteo se eliminó, pero está en el historial de git (commit `4f82c75` y anteriores) y su lógica sirve de referencia: llamada única a Open-Meteo Marine + Forecast para todas las playas, `effHeight()`/`expo()` (altura en la playa según `facing`), `evaluate()` (puntaje), amanecer/atardecer, caché en `localStorage`, hora de Uruguay.
 
-Todo está en un solo archivo, `index.html` (HTML + CSS + JS, sin build ni dependencias locales):
+Ruteo por hash (`#inicio`, `#olas`, `#fotos`, `#sesion`, `#fotografo`, `#vender`); objeto `V` con una función por pantalla que devuelve `{url, title, sec, html, after}`. `url` es la dirección "para Google" que tendría cada pantalla en la versión real.
 
-- **BEACHES**: lista de playas, de oeste a este. `lat/lon` = punto en el mar para pedir el pronóstico (un poco mar adentro para que el modelo marino tenga datos); `mlat/mlon` = posición del marcador en el mapa; `facing` = hacia dónde mira la playa en grados (se usa para saber si el viento es terral, cruzado o de mar).
-- **Datos en vivo**: Open-Meteo Marine API (altura, período, dirección de ola, mar de fondo, mar de viento, temperatura del agua) y Open-Meteo Forecast API (viento y ráfagas). Una sola llamada para todas las playas (coordenadas separadas por coma), 8 días; se muestran 7 desde la hora actual. Amanecer/atardecer de la API (`daily=sunrise,sunset`), con cálculo propio (`solar()`) si no hay. Reintenta 3 veces; si falla usa el último pronóstico guardado en `localStorage` (`olasuy-cache`, aviso azul) y, si no hay, datos de EJEMPLO (aviso amarillo). Se actualiza solo cada 30 min, al volver a la pestaña y al recuperar internet (`tick()`).
-- **Horario**: todo se calcula en hora de Uruguay (`nowUY()`), no en la del dispositivo.
-- **Próximos días** (`renderDays()`): mejor ventana de 3 h con luz por día. "Mejor playa" y la tabla ignoran las horas de noche.
-- **Favoritas**: estrella en el panel, guardadas en `olasuy-favs`, aparecen primero en la lista.
-- **Accesibilidad**: los colores de Bueno (verde) y Muy bueno (violeta) se distinguen; `aria-label` en marcadores, chips y canvas; con `prefers-reduced-motion` la ola se dibuja quieta.
-- **effHeight() / expo()**: altura de ola *en la playa* (`he`): el mar de fondo y el mar de viento se reducen según el ángulo entre su dirección y `facing`. Todo lo que muestra tamaño de ola usa `he`; `h` (mar adentro) solo se ve en modo Experto.
-- **evaluate()**: puntaje 0–10 y calificación (Plano, Malo, Regular, Bueno, Muy bueno, Peligroso) + indicador de baño.
-- **waveType()**: tipo de ola que define la animación: plano, espuma, formada, tubo, picado, bomba.
-- **drawHero()**: animación lateral en canvas de una ola con una persona de 1,70 m para escala. Debe ser simple y fluida (el usuario pidió explícitamente que se entienda fácil).
-- **drawSim() / openSim()**: simulación de playa a pantalla completa en perspectiva; las olas llegan cada `período` segundos, en series, con contador y velocidad x1/x2/x4.
-- **Mapa**: Leaflet (cdnjs) con imágenes satelitales de Esri (CARTO dejó de funcionar sin clave). Marcadores de color con la altura de ola; con zoom < 10 se muestran como puntos chicos sin número (evita que se encimen) y al tocar uno el mapa se acerca.
-- Modo **Simple / Experto** (clase `expert` en `body`, elementos `.expert-only`).
+- **Diseño**: tema claro único ("espuma y arena"), tokens en `:root`; fuentes Bricolage Grotesque (títulos) + Outfit. Navegación con dock flotante abajo (Olas · Mis fotos · Vender). Transiciones con View Transitions; respeta `prefers-reduced-motion`.
+- **Inicio**: portada con olas animadas en canvas (`sea()`), mejor playa ahora, carrusel "Ahora" y "Recién subidas".
+- **Olas (`#olas`)**:
+  - Arriba, mapa SVG con zoom (rueda, pellizco, arrastre, +/−/⤢). Costa, lagunas y fronteras reales de GSHHG alta resolución (1:250.000, del paquete PyPI `basemap-data-hires`), simplificadas a ~20 m y proyectadas con `PJ(lat,lon)`. El tinte gris de Argentina y Brasil sale de geo-maps / Natural Earth.
+  - `MAPPOS`: posición de cada playa, ajustada a la orilla real.
+  - Al tocar una playa: si está lejos o encimada, `tapMk()` acerca el mapa; si no, abre una hoja (`openBeach`) con el pronóstico de ahora y de los 7 días.
+  - Debajo del mapa: selector de día (7 días), barra de hora y "Tus playas": ♥ favoritas (`olasuy-maq-favs`) y "las que más mirás" (contador `olasuy-maq-views`, aparecen con 2 o más vistas). Más abajo, "Todas", ordenadas por puntaje.
+  - Tarjeta (`waveCard`): altura arriba a la derecha, "⭐ puntaje/10", período, viento (flecha verde terral / gris cruzado / roja de mar + km/h) y barritas de 24 h que se tocan o arrastran para elegir la hora. Al abrirla: mejor puntaje de cada uno de los 7 días y mejor hora del día.
+  - `score()` replica el `evaluate()` real (tamaño × período ± viento).
+- **Fotos (`#fotos`, `#sesion`)**: "¿Dónde surfeaste?" (playas en círculos) + "¿Cuándo?" (días). En la sesión, barra de hora para encontrarse. Visor a pantalla completa con marca de agua y "Llevala en alta". La compra es una hoja que pide solo mail + Mercado Pago.
+- **Fotógrafo (`#fotografo`)**: perfil público con portada, avatar, números y sesiones.
+- **Vender (`#vender`)**: asistente en 3 pasos (subir fotos con vista previa de la marca de agua → dónde y cuándo → precio con +/− y "te quedan $X") y conexión con Mercado Pago.
+
+## Decisiones de producto
+
+- Pagos: **Mercado Pago dividido** (marketplace). El pago va directo al fotógrafo y olas.uy cobra **15%** de comisión automática.
+- Búsqueda de fotos en v1: **playa + día + hora** (sin reconocimiento facial).
+- Stack previsto para la versión real: Cloudflare (Workers/Pages, R2 para fotos, D1 base de datos), que el usuario ya usa. Fotógrafos con login por mail (código, sin contraseña). Originales privados con link de descarga que vence.
+- SEO: cada playa, día, fotógrafo y sesión con su propia URL (`/pronostico/la-pedrera`, `/fotos/la-pedrera/2026-11-09/usuario`, `/fotografos/nombre`), títulos, datos estructurados y sitemap.
 
 ## Cómo probar
 
-Abrir `index.html` en el navegador. Para ver datos reales hace falta internet (Open-Meteo permite llamadas desde el navegador, sin clave).
+Abrir `index.html` en el navegador (o el link de github.io). Para el mapa no hace falta internet: la geometría está embebida en el archivo.
 
 ## Pendientes / ideas
 
-- Verificar coordenadas de Solymar, El Pinar, Bello Horizonte, Cuchilla Alta, Kiyú, Punta Negra, El Emir, La Balconada, Los Botes, Punta Rubia y Barra de Valizas (se cargaron aproximadas).
-- Ajustar `facing` de cada playa con conocimiento local.
+- Conectar la sección Olas a datos reales de Open-Meteo (reutilizar la lógica del pronóstico viejo).
+- Versión real de fotos: servidor, cuentas de fotógrafos, subida a R2 con marca de agua, pagos con Mercado Pago.
+- Verificar `facing` y posiciones de las playas con conocimiento local.
