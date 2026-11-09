@@ -730,7 +730,7 @@ V.fotografo=()=>{const p=S.photog,ss=SESSIONS.filter(s=>s.p===p.id);
   <section style="margin-top:22px"><div class="sessions">${ss.map(s=>`<button class="sess" data-go="sesion" data-sess="${s.id}" aria-label="${s.beach} ${dayName(s.k)}"><img src="${photo(s.seed*100)}" alt="" loading="lazy"><div class="wm"></div><span class="tag">${dayName(s.k)} · ${s.from}</span><span class="ov"><b>${s.beach}</b><span>${s.n} fotos</span></span></button>`).join("")}</div></section>`};};
 
 V.vender=()=>{const st=S.step;let body="";
-  if(st===1)body=`<h2>Subí tus fotos</h2>
+  if(st===1)body=`<h2>Subí tus fotos <span class="pill" style="vertical-align:middle;font-family:var(--body);letter-spacing:0">Ejemplo</span></h2>
     <label class="drop" id="drop" for="uF" style="margin-top:14px"><span class="big">⬆︎</span><b>Arrastralas acá o tocá para elegir</b><span class="mut" style="font-size:14px">La marca de agua se pone sola</span><input id="uF" type="file" accept="image/*" multiple hidden></label>
     <div class="row" style="justify-content:center;margin-top:10px"><button class="link" id="demo">Probar con fotos de ejemplo</button></div>
     <div class="thumbs" id="th">${S.uploads.slice(0,18).map(u=>`<div><img src="${u}" alt=""><div class="wm"></div></div>`).join("")}</div>
@@ -749,7 +749,7 @@ V.vender=()=>{const st=S.step;let body="";
   if(st===4)body=`<div style="text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center"><div class="okc">✓</div><h2>¡Publicada!</h2><p class="mut">${S.uBeach} · ${dayName(S.uK)} · ${S.uploads.length} fotos a ${money(S.price)}</p>
     <div class="row" style="justify-content:center"><button class="btn" data-go="fotografo" data-photog="lucia">Ver mi perfil</button><button class="btn soft" id="again">Subir otra</button></div></div>`;
   return{url:"olas.uy/vender",title:"Vender fotos",sec:"vender",html:`
-  <div class="earn"><span class="stat"><span class="mut">Este mes</span><b class="tab">${money(6842)}</b></span><span class="stat"><span class="mut">Vendidas</span><b class="tab">23</b></span><span class="stat"><span class="mut">Perfil</span><b><button class="link" data-go="fotografo" data-photog="lucia">Ver →</button></b></span></div>
+  <div class="earn" id="earn" hidden></div>
   <div class="card" style="max-width:640px;margin:0 auto">${st<4?`<div class="steps" aria-hidden="true">${[1,2,3].map(i=>`<span class="${i<=st?"on":""}"></span>`).join("")}</div>`:""}${body}</div>`,
   after(){const $=id=>document.getElementById(id);
     const add=files=>{[...files].filter(f=>f.type.startsWith("image/")).slice(0,60).forEach(f=>{const rd=new FileReader();rd.onload=()=>{S.uploads.push(rd.result);render();};rd.readAsDataURL(f);});};
@@ -766,7 +766,12 @@ V.vender=()=>{const st=S.step;let body="";
     if($("plus")){$("plus").onclick=()=>setP(S.price+50);$("minus").onclick=()=>setP(S.price-50);}
     if($("mp"))$("mp").onclick=()=>{S.mp=true;toast("Mercado Pago conectado ✓");render();};
     if($("pub"))$("pub").onclick=()=>{S.step=4;render();};
-    if($("again"))$("again").onclick=()=>{S.step=1;S.uploads=[];render();};}};};
+    if($("again"))$("again").onclick=()=>{S.step=1;S.uploads=[];render();};
+    // Ventas REALES del fotógrafo (no se muestran números inventados)
+    if(SB&&ME){SB.rpc("my_sales").then(({data,error})=>{const el=$("earn");if(error||!el||!data?.length)return;
+      const m0=new Date(today.getFullYear(),today.getMonth(),1),mes=data.filter(x=>new Date(x.paid_at)>=m0);
+      const neto=mes.reduce((t,x)=>t+Number(x.amount)-Number(x.platform_fee),0);
+      el.innerHTML=`<span class="stat"><span class="mut">Este mes</span><b class="tab">${money(neto)}</b></span><span class="stat"><span class="mut">Vendidas</span><b class="tab">${mes.length}</b></span>`;el.hidden=false;});}}};};
 
 // ============ Visor de foto y compra ============
 const vw=document.getElementById("viewer"),sheet=document.getElementById("sheet"),scrim=document.getElementById("scrim");
