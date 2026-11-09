@@ -810,7 +810,7 @@ const acctBtn=document.getElementById("acct");
 function paintAcct(){if(!SB){acctBtn.hidden=true;return;}acctBtn.hidden=false;
   if(ME){const n=(ME.user_metadata?.full_name||ME.email||"?").trim();acctBtn.textContent=n[0].toUpperCase();acctBtn.classList.add("av");acctBtn.setAttribute("aria-label","Tu cuenta");}
   else{acctBtn.textContent="Entrar";acctBtn.classList.remove("av");acctBtn.removeAttribute("aria-label");}}
-async function signIn(){await SB.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin+location.pathname+location.hash}});}
+async function signIn(){await SB.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin+location.pathname}});}
 async function openAccount(){
   sheet.innerHTML=`<div class="grab"></div><h2>Tus fotos</h2><p class="mut">${ME.email}</p><div id="buys" class="mybuys"><p class="mut">Cargando…</p></div>
     <button class="btn soft block" id="out">Salir</button>`;
