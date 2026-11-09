@@ -25,6 +25,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:10px;ma
 #map{height:300px;border-radius:18px;border:1px solid var(--line);overflow:hidden;background:#0a2233;margin-bottom:10px}
 .leaflet-container{font-family:Outfit,sans-serif;background:#0a2233}
 .mk{width:36px;height:36px;border-radius:50%;background:var(--c);color:#06141f;font:800 11.5px Outfit;display:flex;align-items:center;justify-content:center;border:2.5px solid #06141f;box-shadow:0 2px 8px rgba(0,0,0,.5);transition:transform .2s}
+.mk.mini{width:16px;height:16px;border-width:2px}
 .mk.sel{transform:scale(1.3);border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.25),0 2px 10px rgba(0,0,0,.6)}
 .leaflet-tooltip.tt{background:#0f2a3d;color:#e8f4fb;border:1px solid #2a5672;font:600 12px Outfit;box-shadow:none;padding:3px 7px}
 .leaflet-tooltip.tt:before{display:none}
@@ -115,7 +116,7 @@ body.expert th.expert-only,body.expert td.expert-only{display:table-cell}
   <div id="banner"></div>
 
   <div id="map"></div>
-  <div class="maphint">Tocá una playa en el mapa (el número es el tamaño de ola en metros)</div>
+  <div class="maphint">Tocá una playa en el mapa. De cerca, el número es el tamaño de ola en metros.</div>
   <div class="beaches" id="beaches"></div>
 
   <div class="time">
@@ -334,7 +335,7 @@ function openSim(){
   SIM={b,x,e,ty,per,D:34,simT:0,speed:1,waves:[],n:0,chop:[],toastT:0,parts:[]};
   // olas ya en camino
   let t=-SIM.D*1.05;while(t<0){spawnWave(t);t+=per*(0.92+Math.random()*0.16);}SIM.next=t;
-  for(let i=0;i<(ty.k==="picado"?260:150);i++)SIM.chop.push({u:Math.random(),v:Math.random(),l:0.5+Math.random()});
+  for(let i=0;i<(ty.k==="picado"?90:45);i++)SIM.chop.push({u:Math.random(),v:Math.random(),l:0.5+Math.random()});
   document.getElementById("sName").textContent=b.name;
   document.getElementById("sInfo").innerHTML=`${whenLabel(TIMES[idx])}<br>${ty.t} · ${fmt(x.h)} m · una ola cada ${fmt(per,0)} s<br>Viento ${e.w.txt.toLowerCase()} ${Math.round(x.ws||0)} km/h`;
   document.querySelectorAll("#speeds button").forEach(x=>x.classList.toggle("on",x.dataset.s==="1"));
@@ -369,7 +370,7 @@ function drawSim(dt){
     if(m.v>1)m.v-=1;if(m.v<0)m.v+=1;if(m.u>1)m.u-=1;if(m.u<0)m.u+=1;
     const y=Y(m.v),s=SCL(m.v),x=m.u*W;const len=(6+ws*0.3)*s*m.l;
     const white=k==="picado"&&m.l>1.2;
-    c.strokeStyle=white?`rgba(255,255,255,${0.55*s+0.15})`:`rgba(190,230,250,${0.12+0.18*s})`;c.lineWidth=Math.max(0.6,1.6*s);
+    c.strokeStyle=white?`rgba(255,255,255,${0.45*s+0.1})`:`rgba(190,230,250,${0.06+0.1*s})`;c.lineWidth=Math.max(0.6,1.6*s);
     c.beginPath();c.moveTo(x-len,y);c.lineTo(x+len,y);c.stroke();}
   // olas (de lejos a cerca)
   const ws2=[...S.waves].sort((a,b)=>a.born-b.born);
@@ -384,7 +385,7 @@ function drawSim(dt){
       const q=s>w.breakS?(s-w.breakS)/(1-w.breakS):0;
       const grow=s<w.breakS?0.55+0.45*(s/w.breakS):1-0.55*q;
       const hh=Math.max(1.5,w.amp*ppmS*scl*grow*(k==="plano"?0.6:1));
-      const top=x=>{const u=x/W;return y-hh*(0.72+0.28*Math.exp(-Math.pow((u-w.peak)/0.28,2)))*(1+0.06*Math.sin(x*0.02+w.id));};
+      const top=x=>{const u=x/W;return y-hh*(0.72+0.28*Math.exp(-Math.pow((u-w.peak)/0.28,2)));};
       // cara de la ola
       g=c.createLinearGradient(0,y-hh,0,y+hh*0.3);g.addColorStop(0,"#6fd0f0");g.addColorStop(0.25,"#2a9cc8");g.addColorStop(0.75,"#0a4766");g.addColorStop(1,"rgba(10,60,90,0)");
       c.fillStyle=g;c.beginPath();c.moveTo(0,y+hh*0.25);for(let x=0;x<=W;x+=8)c.lineTo(x,top(x));c.lineTo(W,y+hh*0.25);c.closePath();c.fill();
@@ -394,8 +395,11 @@ function drawSim(dt){
         for(let x=0;x<W;x+=14){const yt=top(x);c.beginPath();c.moveTo(x,yt);c.lineTo(x+Math.sin(x)*3,yt-(4+ws*0.25)*scl);c.stroke();}}
       // rompiente
       if(q>0){
-        const foam=(x0,x1,alpha,th)=>{if(x1<=x0)return;c.fillStyle=`rgba(255,255,255,${alpha})`;c.beginPath();c.moveTo(x0,y+hh*0.3);
-          for(let x=x0;x<=x1;x+=6)c.lineTo(x,top(x)-hh*0.08*Math.abs(Math.sin(x*0.07+w.id))*th);c.lineTo(x1,y+hh*0.3);c.closePath();c.fill();};
+        const foam=(x0,x1,alpha,th)=>{x0=Math.max(0,x0);x1=Math.min(W,x1);if(x1<=x0)return;
+          const fg=c.createLinearGradient(0,y-hh*1.1,0,y+hh*0.35);fg.addColorStop(0,`rgba(255,255,255,${alpha})`);fg.addColorStop(0.7,`rgba(255,255,255,${alpha*0.85})`);fg.addColorStop(1,"rgba(255,255,255,0)");
+          c.fillStyle=fg;c.beginPath();c.moveTo(x0,y+hh*0.35);
+          for(let x=x0;x<=x1;x+=4){const edge=Math.min(1,(x-x0)/(hh*1.5+1),(x1-x)/(hh*1.5+1));c.lineTo(x,top(x)-hh*0.12*th*edge);}
+          c.lineTo(x1,y+hh*0.35);c.closePath();c.fill();};
         if(k==="tubo"||k==="formada"){
           const spread=q*(k==="tubo"?0.75:1.05);const x0=(w.peak-spread)*W,x1=(w.peak+spread)*W;
           foam(Math.max(0,x0),Math.min(W,x1),0.92,1.5);
@@ -408,9 +412,9 @@ function drawSim(dt){
           const spread=Math.min(1.2,q*2.6);foam(Math.max(0,(w.peak-spread)*W),Math.min(W,(w.peak+spread)*W),0.95,2.2);
           if(q<0.5){c.fillStyle=`rgba(255,255,255,${0.35*(1-q*2)})`;c.fillRect(0,y-hh*1.9,W,hh*1.1);}
         }else if(k==="espuma"){foam(0,W,Math.min(0.9,q*1.8),1);}
-        else if(k==="picado"){for(let x=0;x<W;x+=W/24){if(rnd(w.id*31+x)<0.35+q)foam(x,x+W/24+4,0.85,1.6);}}
+        else if(k==="picado"){for(let j=0;j<4;j++){const cxp=rnd(w.id*31+j)*W,half=W*(0.08+0.25*q)*(0.6+rnd(w.id*7+j));foam(cxp-half,cxp+half,0.85,1);}}
         else{foam(0,W,0.35*q,0.5);}
-      }else if(k==="picado"&&s>0.4){c.fillStyle="rgba(255,255,255,.6)";for(let x=0;x<W;x+=W/16){if(rnd(w.id*17+x)<0.25)c.fillRect(x,top(x)-1,W/30*scl,2*scl+1);}}
+      }
     }else{
       // la espuma sube por la arena y vuelve
       const r=(s-1)/0.35,ext=Math.sin(clamp(r,0,1)*Math.PI)*(H-ys)*0.32*clamp(w.amp/1.2+0.25,0.25,1);
@@ -455,13 +459,16 @@ function initMap(){
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:18,opacity:.85}).addTo(map);
   tiles.on("tileerror",()=>{if(!coastDrawn){coastDrawn=true;L.polyline(COAST,{color:"#7dd3fc",weight:2,opacity:.7}).addTo(map);}});
   map.fitBounds(L.latLngBounds(BEACHES.map(b=>[b.mlat,b.mlon])),{padding:[24,24]});
+  map.on("zoomend",()=>{if(DATA)updateMap();});
   BEACHES.forEach(b=>{const m=L.marker([b.mlat,b.mlon],{icon:L.divIcon({className:"",html:"",iconSize:[36,36],iconAnchor:[18,18]})}).addTo(map);
-    m.bindTooltip(b.name,{direction:"top",offset:[0,-16],className:"tt"});m.on("click",()=>selectBeach(b.id));markers[b.id]=m;});
+    m.bindTooltip(b.name,{direction:"top",offset:[0,-16],className:"tt"});m.on("click",()=>{selectBeach(b.id);map.flyTo([b.mlat,b.mlon],Math.max(map.getZoom(),11),{duration:0.8});});markers[b.id]=m;});
 }
 function updateMap(){
   if(!map)return;
   DATA.forEach(b=>{const x=b.hours[idx],e=evaluate(b,x),sel=b.id===selId;const m=markers[b.id];
-    m.setIcon(L.divIcon({className:"",html:`<div class="mk ${sel?"sel":""}" style="--c:${COLORS[e.cls]}">${fmt(x.h)}</div>`,iconSize:[36,36],iconAnchor:[18,18]}));
+    const small=map.getZoom()<10&&!sel;
+    m.setIcon(small?L.divIcon({className:"",html:`<div class="mk mini" style="--c:${COLORS[e.cls]}"></div>`,iconSize:[16,16],iconAnchor:[8,8]})
+      :L.divIcon({className:"",html:`<div class="mk ${sel?"sel":""}" style="--c:${COLORS[e.cls]}">${fmt(x.h)}</div>`,iconSize:[36,36],iconAnchor:[18,18]}));
     m.setZIndexOffset(sel?1000:0);
     if(sel){m.unbindTooltip();m.bindTooltip(b.name,{direction:"top",offset:[0,-22],className:"tt",permanent:true}).openTooltip();}
     else if(m.getTooltip()&&m.getTooltip().options.permanent){m.unbindTooltip();m.bindTooltip(b.name,{direction:"top",offset:[0,-16],className:"tt"});}

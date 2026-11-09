@@ -14,7 +14,7 @@ Todo está en un solo archivo, `index.html` (HTML + CSS + JS, sin build ni depen
 - **waveType()**: tipo de ola que define la animación: plano, espuma, formada, tubo, picado, bomba.
 - **drawHero()**: animación lateral en canvas de una ola con una persona de 1,70 m para escala. Debe ser simple y fluida (el usuario pidió explícitamente que se entienda fácil).
 - **drawSim() / openSim()**: simulación de playa a pantalla completa en perspectiva; las olas llegan cada `período` segundos, en series, con contador y velocidad x1/x2/x4.
-- **Mapa**: Leaflet (cdnjs) con imágenes satelitales de Esri (CARTO dejó de funcionar sin clave). Marcadores de color con la altura de ola.
+- **Mapa**: Leaflet (cdnjs) con imágenes satelitales de Esri (CARTO dejó de funcionar sin clave). Marcadores de color con la altura de ola; con zoom < 10 se muestran como puntos chicos sin número (evita que se encimen) y al tocar uno el mapa se acerca.
 - Modo **Simple / Experto** (clase `expert` en `body`, elementos `.expert-only`).
 
 ## Cómo probar
@@ -23,7 +23,5 @@ Abrir `index.html` en el navegador. Para ver datos reales hace falta internet (O
 
 ## Pendientes / ideas
 
-- Marcadores encimados en zona Punta del Este y La Paloma: agruparlos o achicarlos según el zoom.
-- Aplicar a la simulación el mismo estilo simple que tiene la animación de la ola.
 - Verificar coordenadas de Solymar, El Pinar, Bello Horizonte y Cuchilla Alta (se cargaron aproximadas).
 - Ajustar `facing` de cada playa con conocimiento local.
