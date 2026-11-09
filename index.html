@@ -113,6 +113,15 @@ section{margin-top:44px}
 .hl{position:relative;height:14px;font-size:11.5px;font-weight:600;color:var(--mut)}
 .hl span{position:absolute;top:0;white-space:nowrap}
 .tpill{border:0;border-radius:999px;padding:4px 9px;font-weight:700;font-size:12.5px;background:var(--ink);color:var(--white);white-space:nowrap}
+.simb{border:0;border-radius:14px;padding:11px;font-weight:700;font-size:15px;background:linear-gradient(135deg,#13a8c2,#3cc9b8);color:#fff;width:100%}
+.simv{position:fixed;inset:0;z-index:15;background:var(--foam);display:none;flex-direction:column;overflow-y:auto;padding:calc(10px + env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+.simv.on{display:flex}
+.smtop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;text-align:center}
+.smtop b{font:800 20px/1.1 var(--display)}
+.simv canvas{width:100%;max-width:900px;margin:0 auto;height:min(46vh,420px);min-height:240px;border-radius:24px;display:block;box-shadow:var(--shadow);flex:0 0 auto}
+.smbody{max-width:640px;width:100%;margin:16px auto 0}
+.smbody h2{font-size:26px}
+.smbody p{margin-top:4px}
 .wv .more{display:none;gap:8px;flex-wrap:wrap}
 .wv.open .more{display:flex}
 .wv>*{min-width:0}
@@ -420,7 +429,7 @@ const app=document.getElementById("app"),V={};
 function render(){const r=(location.hash||"#inicio").slice(1);const v=V[r]?r:"inicio";const o=V[v]();
   app.innerHTML=o.html;document.getElementById("url").textContent=o.url;document.title=(o.title?o.title+" · ":"")+"Olas UY";
   document.querySelectorAll(".dock a").forEach(a=>a.classList.toggle("on",a.dataset.sec===(o.sec||v)));o.after&&o.after();}
-function show(){if(vw.classList.contains("on"))closeViewer();if(typeof bs!=="undefined"&&bs.classList.contains("on")){bs.classList.remove("on");scrim.classList.remove("on");bsBeach=null;}if(document.startViewTransition&&!RM.matches)document.startViewTransition(()=>{render();scrollTo(0,0);});else{render();scrollTo(0,0);}}
+function show(){if(vw.classList.contains("on"))closeViewer();if(typeof closeSim==="function")closeSim();if(typeof bs!=="undefined"&&bs.classList.contains("on")){bs.classList.remove("on");scrim.classList.remove("on");bsBeach=null;}if(document.startViewTransition&&!RM.matches)document.startViewTransition(()=>{render();scrollTo(0,0);});else{render();scrollTo(0,0);}}
 addEventListener("hashchange",show);
 function go(r){if(location.hash==="#"+r)show();else location.hash=r;}
 document.addEventListener("click",e=>{const el=e.target.closest("[data-go]");if(!el)return;e.preventDefault();
@@ -462,6 +471,7 @@ function waveCard(F,inSheet){const own=S.sel[F.b],[d,hr]=own||[S.day,S.hr],f=at(
     <span class="top"><span><b><button class="fav" data-fav="${F.b}" aria-pressed="${fv}" aria-label="${fv?"Quitar de":"Agregar a"} tus playas">${fv?"♥":"♡"}</button>${F.b}</b><span class="row" style="gap:6px"><span class="pill" style="--c:${GR[f.g][1]}">${GR[f.g][0]}</span>${own?`<button class="tpill" data-reset="${F.b}" aria-label="Volver a la hora general">🕐 ${clkLbl(d,hr)} ✕</button>`:""}</span></span><span class="hbig tab">${m1(f.h)}<small> m</small></span></span>
     <span class="facts tab"><span class="fact score" style="--c:${GR[f.g][1]}">⭐ ${m1(f.sc)}<small>/10</small></span><span class="fact">${clock}${f.per}<small>s</small></span><span class="fact" style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}<small>km/h</small></span></span>
     <span class="hours">${spark(F,d,hr)}<span class="hl" aria-hidden="true">${[0,6,12,18].map(k=>`<span style="left:${k/24*100}%">${k} h</span>`).join("")}</span></span>
+    <button class="simb" data-sim="${F.b}" aria-label="Ver simulación de la ola en ${F.b}, ${clkLbl(d,hr)}">▶ Simulación</button>
     <span class="more" style="flex-direction:column"><span class="wk7" aria-label="Mejor puntaje de cada día">${[...Array(NDAYS).keys()].map(k=>{const x=bestOf(F,k);return `<button data-day="${k}" aria-pressed="${k===d}" style="--c:${GR[x.g][1]}" aria-label="${DIAS_F(k)}: mejor puntaje ${m1(x.sc)}">${k===1?"Mañ":DIAS_F(k).split(" ")[0]}<b class="tab">${m1(x.sc)}</b></button>`;}).join("")}</span>
       <span class="row" style="gap:8px"><span class="kv">Mejor ${DIAS_F(d).toLowerCase()}<b>${bo.clk}–${bo.clk+3} h</b></span><span class="kv">Viento<b>${WK[f.wk].t}</b></span><span class="kv" data-go="fotos" data-beach="${F.b}" style="background:var(--sand)">Fotos<b>Ver →</b></span></span></span></div>`;}
 
@@ -518,6 +528,126 @@ function olasPaint(sort){const t=document.getElementById("tL"),R=document.getEle
   if(sort&&location.hash==="#olas"){render();}else document.querySelectorAll("#app .wv").forEach(el=>{el.outerHTML=waveCard(FC.find(F=>F.b===el.dataset.b));});
   paintSheet();mapDraw();}
 function setDay(d){S.sel={};S.day=d;if(d===0&&S.hr<H0)S.hr=H0;if(d>0&&S.hr<6)S.hr=9;olasPaint(true);}
+
+// ============ Simulación de la ola (vista lateral, persona de 1,70 m para escala) ============
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+// Tipo de ola según altura, período y viento: define la forma de la animación
+function waveType(x){const h=x.h||0,p=x.per||0,ws=x.ws||0,k=x.wk;
+  if(h<0.3)return{k:"plano",lip:0,t:"Mar plano",d:"Casi sin olas. Ideal para nadar o hacer paddle."};
+  if(h>=2.8)return{k:"bomba",lip:1.2,t:"Olas grandes y pesadas",d:"Rompen de golpe y con mucha fuerza. Solo para expertos."};
+  if((k==="mar"&&ws>=15)||p<5)return{k:"picado",lip:0,t:"Mar picado",d:"El viento de mar desarma las olas: rompen desordenadas y con espuma."};
+  if((k==="terral"||k==="calmo")&&p>=9&&h>=0.9)return{k:"tubo",lip:1,t:"Ola hueca, con tubo",d:"Con terral y buen período la ola se para y la cresta se tira adelante."};
+  if(k!=="mar"&&p>=7.5&&h>=0.6)return{k:"formada",lip:0.55,t:"Ola formada",d:"Limpia y ordenada: rompe desde un pico y abre a los costados."};
+  return{k:"espuma",lip:0,t:"Ola de espuma",d:"Rompe suave, derramando espuma. Ideal para aprender."};}
+let wc=null,wW=0,wH=0,wCfg=null,wParts=[],wSpl=-1,simB=null,simRAF=0,simLast=0;
+function sizeCanvas(cv,ctx){const r=cv.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);return[r.width,r.height];}
+function drawPerson(c,x,yF,hp,label){
+  const r=hp*0.075;c.save();c.strokeStyle="#0c2a38";c.fillStyle="#0c2a38";c.lineCap="round";c.lineWidth=Math.max(2,hp*0.065);
+  c.beginPath();c.arc(x,yF-hp+r,r,0,7);c.fill();
+  c.beginPath();c.moveTo(x,yF-hp+2*r);c.lineTo(x,yF-hp*0.45);c.moveTo(x,yF-hp*0.45);c.lineTo(x-hp*0.1,yF);c.moveTo(x,yF-hp*0.45);c.lineTo(x+hp*0.1,yF);
+  c.moveTo(x,yF-hp*0.78);c.lineTo(x-hp*0.17,yF-hp*0.55);c.moveTo(x,yF-hp*0.78);c.lineTo(x+hp*0.17,yF-hp*0.55);c.stroke();
+  if(label){c.font="600 11px Outfit";c.fillStyle="rgba(255,255,255,.85)";c.textAlign="left";c.fillText(label,x+hp*0.2,yF-hp*0.9);}
+  c.restore();
+}
+const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+function drawWave(ts,dt){
+  if(!wCfg||!wW)return;
+  const c=wc,W=wW,H=wH,cfg=wCfg,k=cfg.type.k,lip=cfg.type.lip,T=ts/1000;
+  const yS=H*0.74,ppm=H*0.16;
+  // cielo
+  let g=c.createLinearGradient(0,0,0,yS);g.addColorStop(0,"#bfe6f1");g.addColorStop(1,"#eef9fc");c.fillStyle=g;c.fillRect(0,0,W,H);
+  const A=Math.min(cfg.h,3.8)*ppm;
+  const C=clamp(cfg.p*0.6,4,8),cyc=Math.floor(T/C),tau=(T/C)%1;
+  // ola principal: avanza a velocidad constante, crece, rompe y se apaga
+  const cx=W*(-0.22+0.98*tau);
+  let a=A*(0.45+0.55*smooth(0,0.55,tau));
+  a*=1-0.7*smooth(0.66,0.9,tau)-0.3*smooth(0.9,1,tau);
+  const steep=smooth(0.1,0.58,tau)*(lip>0?0.85:0.5);
+  const wb=W*0.26,wf=W*0.22*(1-steep);
+  const bumps=k==="picado"?[0.35,0.62]:[];
+  const surf=x=>{let y=yS+1.2*Math.sin(x*0.025-T*1.6);
+    if(k==="plano")return y-Math.max(1.5,A*0.5)*Math.sin(x*0.022-T*1.2);
+    const dx=x-cx;y-=a*Math.exp(-Math.pow(dx/(dx<0?wb:wf),2));
+    for(const o of bumps){const bx=((o+tau*0.8)%1)*W*1.2-W*0.1;y-=A*0.22*Math.exp(-Math.pow((x-bx)/(W*0.07),2));}
+    return y;};
+  const foamBand=(x0,x1,th,alpha)=>{if(x1-x0<2)return;c.fillStyle=`rgba(255,255,255,${alpha})`;c.beginPath();
+    for(let x=x0;x<=x1;x+=2){const f=Math.sin(Math.PI*(x-x0)/(x1-x0));c.lineTo(x,surf(x)-th*f);}
+    for(let x=x1;x>=x0;x-=2){const f=Math.sin(Math.PI*(x-x0)/(x1-x0));c.lineTo(x,surf(x)+th*0.35*f);}c.closePath();c.fill();};
+  // agua
+  g=c.createLinearGradient(0,yS-A,0,H);g.addColorStop(0,"#62cfe3");g.addColorStop(0.4,"#1f9cbc");g.addColorStop(1,"#0d5f7a");
+  c.fillStyle=g;c.beginPath();c.moveTo(0,H);for(let x=0;x<=W;x+=2)c.lineTo(x,surf(x));c.lineTo(W,H);c.closePath();c.fill();
+  c.strokeStyle="rgba(255,255,255,.3)";c.lineWidth=1.2;c.beginPath();for(let x=0;x<=W;x+=2){const y=surf(x);x?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();
+  // rompiente
+  if(k!=="plano"){
+    let xe=cx+wf;
+    if(lip>0){
+      const bp=smooth(0.5,0.7,tau);
+      if(bp>0&&tau<0.75){
+        const x0=cx+wf*0.1,y0=surf(x0),L=a*1.2*lip*bp;xe=x0+L;const ye=yS-a*(1-0.9*bp),qx=x0+L*0.95,qy=y0-a*0.12*lip;
+        if(bp>0.15){c.fillStyle="rgba(5,35,52,.9)";c.beginPath();c.moveTo(x0,y0);c.quadraticCurveTo(qx,qy,xe,ye);c.lineTo(xe,Math.max(ye,surf(xe)));for(let x=xe;x>=x0;x-=2)c.lineTo(x,surf(x));c.closePath();c.fill();}
+        c.strokeStyle="#35b4dd";c.lineCap="round";c.lineWidth=Math.max(3,a*0.15*(1-0.4*bp));c.beginPath();c.moveTo(x0-wf*0.3,surf(x0-wf*0.3));c.lineTo(x0,y0);c.quadraticCurveTo(qx,qy,xe,ye);c.stroke();
+        c.strokeStyle="rgba(255,255,255,.9)";c.lineWidth=2;c.beginPath();c.moveTo(x0,y0-1);c.quadraticCurveTo(qx,qy-2,xe,ye);c.stroke();
+        if(bp>=1&&wSpl!==cyc){wSpl=cyc;for(let i=0;i<14;i++)wParts.push({x:xe,y:yS-a*0.15,vx:(Math.random()*1.2-0.1)*a*1.1,vy:-(0.7+Math.random()*0.7)*a*2,life:1,g:a*5,r:1.5+Math.random()*2});}
+      }
+      // espuma después de romper
+      const r=smooth(0.68,1,tau);if(tau>0.68)foamBand(cx-wf,Math.min(W*0.97,cx+wf+W*0.3*r),a*0.35+3,0.9-0.5*r);
+    }else{
+      const s0=k==="picado"?0.3:0.42;const r=smooth(s0,0.85,tau);
+      if(tau>s0)foamBand(cx-wf*0.4,cx+wf*(0.4+1.6*r),a*(0.18+0.25*r)+2,0.88-0.35*smooth(0.85,1,tau));
+      if(k==="picado")for(const o of bumps){const bx=((o+tau*0.8)%1)*W*1.2-W*0.1;foamBand(bx-W*0.03,bx+W*0.05,A*0.08+2,0.7);}
+    }
+    // bruma del terral (la cresta “humea” hacia atrás)
+    if(cfg.wk==="terral"&&cfg.ws>10&&tau>0.3&&tau<0.68&&Math.random()<0.6)
+      wParts.push({x:cx+(Math.random()-0.3)*wf,y:yS-a,vx:-(30+cfg.ws*2.5),vy:-(8+Math.random()*15),life:0.7,g:15,r:0.8+Math.random()});
+  }
+  c.fillStyle="#fff";
+  for(let i=wParts.length-1;i>=0;i--){const p=wParts[i];p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
+    if(p.life<=0||p.y>yS+6){wParts.splice(i,1);continue;}c.globalAlpha=clamp(p.life,0,1)*0.85;c.beginPath();c.arc(p.x,p.y,p.r,0,7);c.fill();}
+  c.globalAlpha=1;
+  // arena y persona parada en la orilla (misma base que el mar → comparación directa)
+  const xP=W*0.88;
+  g=c.createLinearGradient(0,yS,0,H);g.addColorStop(0,"#e3cf9f");g.addColorStop(1,"#b8996a");c.fillStyle=g;
+  c.beginPath();c.moveTo(W*0.62,H);c.lineTo(xP-ppm*0.3,yS+2);c.lineTo(W,yS-ppm*0.08);c.lineTo(W,H);c.closePath();c.fill();
+  drawPerson(c,xP,yS,ppm*1.7,"");
+  c.font="700 12px Outfit";c.fillStyle="#0c2a38";c.textAlign="center";c.fillText("1,70 m",xP,yS-ppm*1.7-6);
+  // altura de la ola
+  if(k!=="plano"){const yA=yS-A;c.strokeStyle="rgba(12,42,56,.45)";c.setLineDash([5,5]);c.lineWidth=1;c.beginPath();c.moveTo(0,yA);c.lineTo(W,yA);c.stroke();c.setLineDash([]);
+    c.font="800 14px Outfit";c.textAlign="left";c.fillStyle="#0c2a38";c.fillText(`Ola ${m1(cfg.h)} m`,10,yA-6);}
+  // viento, en palabras
+  if(cfg.ws>=8){const col=cfg.wk==="terral"?"#86efac":cfg.wk==="mar"?"#fca5a5":"#e2e8f0";
+    const txt=cfg.wk==="terral"?"← Viento terral":cfg.wk==="mar"?"Viento de mar →":"Viento cruzado";
+    c.font="700 12px Outfit";const tw=c.measureText(txt+"  "+Math.round(cfg.ws)+" km/h").width+18;
+    c.fillStyle="rgba(6,20,31,.65)";c.beginPath();c.roundRect?c.roundRect(W-tw-8,8,tw,24,12):c.rect(W-tw-8,8,tw,24);c.fill();
+    c.fillStyle=col;c.textAlign="left";c.fillText(txt+"  "+Math.round(cfg.ws)+" km/h",W-tw+1,24);}
+}
+const simv=document.createElement("div");simv.className="simv";simv.setAttribute("role","dialog");simv.setAttribute("aria-modal","true");simv.setAttribute("aria-label","Simulación de la ola");document.body.appendChild(simv);
+function simTime(){return S.sel[simB]||[S.day,S.hr];}
+function paintSimInfo(){const F=FC.find(x=>x.b===simB),[d,hr]=simTime(),f=at(F,d*24+hr),ty=waveType(f);
+  wCfg={h:f.h,p:f.per||8,ws:f.ws,wk:f.wk,type:ty};wParts=[];
+  simv.querySelector("#smT").textContent=clkLbl(d,hr);
+  simv.querySelector("#smI").innerHTML=`<h2>${ty.t}</h2><p class="mut">${ty.d}</p>
+    <span class="facts tab" style="margin-top:12px"><span class="fact hgt">${m1(f.h)}<small> m</small></span><span class="fact">${clock}${f.per}<small>s</small></span><span class="fact" style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}<small>km/h</small></span></span>`;
+  simv.querySelector("#smD").innerHTML=[...Array(NDAYS).keys()].map(k=>`<button class="chip" data-sd="${k}" aria-pressed="${k===d}">${DIAS_F(k)}</button>`).join("");
+  const R=simv.querySelector("#smR");R.min=d?0:H0;R.value=hr;
+  if(RM.matches)simFrame(performance.now(),true);}
+function simFrame(ts,still){if(!simB)return;if(!wW){[wW,wH]=sizeCanvas(simv.querySelector("canvas"),wc);}
+  if(still){const C=clamp(wCfg.p*0.6,4,8);drawWave(C*0.62*1000,0);return;}
+  const dt=Math.min(.05,(ts-(simLast||ts))/1000);simLast=ts;drawWave(ts,dt);simRAF=requestAnimationFrame(simFrame);}
+function openSim(b){simB=b;seen(b);const F=FC.find(x=>x.b===b);
+  simv.innerHTML=`<div class="smtop"><button class="ibtn" id="smX" aria-label="Cerrar">✕</button><div style="min-width:0"><b>${b}</b><div class="mut tab" id="smT"></div></div><span style="width:46px"></span></div>
+    <canvas id="smC" role="img" aria-label="Animación de la ola junto a una persona de 1,70 m"></canvas>
+    <div class="smbody"><div id="smI"></div>
+      <div class="rail" id="smD" style="margin-top:14px"></div>
+      <div class="timebar" style="position:static;margin-top:6px"><span aria-hidden="true">🕐</span><input type="range" id="smR" min="0" max="23" aria-label="Hora"></div></div>`;
+  simv.classList.add("on");document.body.style.overflow="hidden";wc=simv.querySelector("canvas").getContext("2d");wW=0;simLast=0;
+  paintSimInfo();cancelAnimationFrame(simRAF);if(!RM.matches)simRAF=requestAnimationFrame(simFrame);
+  simv.querySelector("#smX").onclick=closeSim;
+  simv.querySelector("#smD").onclick=e=>{const c=e.target.closest("[data-sd]");if(!c)return;const k=+c.dataset.sd;S.sel[b]=[k,k===0?Math.max(H0,bestOf(F,0).clk):bestOf(F,k).clk];paintBeach(b);paintSimInfo();};
+  simv.querySelector("#smR").oninput=e=>{S.sel[b]=[simTime()[0],+e.target.value];paintBeach(b);paintSimInfo();};
+  simv.querySelector("#smX").focus();}
+function closeSim(){if(!simB)return;cancelAnimationFrame(simRAF);simB=null;simv.classList.remove("on");document.body.style.overflow="";}
+addEventListener("resize",()=>{if(simB){wW=0;if(RM.matches)simFrame(0,true);}});
+addEventListener("keydown",e=>{if(e.key==="Escape"&&simB)closeSim();});
 let dragBars=false;
 const paintBeach=b=>{const F=FC.find(x=>x.b===b);document.querySelectorAll(`#app .wv[data-b="${b}"]`).forEach(el=>{el.outerHTML=waveCard(F);});if(bsBeach===b)paintSheet();};
 const pickBars=e=>{const sv=e.target.closest&&e.target.closest(".sp");if(!sv)return false;const card=sv.closest(".wv"),b=card.dataset.b,d=(S.sel[b]||[S.day])[0],r=sv.getBoundingClientRect();
@@ -526,6 +656,7 @@ function cardEvents(root){
   root.addEventListener("pointerdown",e=>{if(pickBars(e)){dragBars=true;e.preventDefault();}});
   root.addEventListener("pointermove",e=>{if(dragBars)pickBars(e);});
   root.addEventListener("click",e=>{const fv=e.target.closest("[data-fav]");if(fv){e.stopPropagation();const b=fv.dataset.fav;FAVS.has(b)?FAVS.delete(b):FAVS.add(b);saveFV();toast(FAVS.has(b)?`${b} está en tus playas ♥`:`${b} salió de tus playas`);if(location.hash==="#olas")render();paintSheet();return;}
+    const sm=e.target.closest("[data-sim]");if(sm){e.stopPropagation();openSim(sm.dataset.sim);return;}
     const rs=e.target.closest("[data-reset]");if(rs){e.stopPropagation();delete S.sel[rs.dataset.reset];paintBeach(rs.dataset.reset);return;}
     const dd=e.target.closest("[data-day]");if(dd){const card=dd.closest(".wv"),b=card.dataset.b,k=+dd.dataset.day,F=FC.find(x=>x.b===b);S.sel[b]=[k,k===0?Math.max(H0,bestOf(F,0).clk):bestOf(F,k).clk];paintBeach(b);return;}
     if(e.target.closest(".sp")||e.target.closest("[data-go]"))return;const w=e.target.closest(".wv");if(!w||root===bs)return;
