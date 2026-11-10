@@ -495,7 +495,8 @@ const app=document.getElementById("app"),V={};
 // Mercado Pago vuelve con ?orden=… o ?external_reference=… (y a veces sin el #): ir directo a la descarga
 function orderFromURL(){const q=new URLSearchParams(location.search);return q.get("orden")||q.get("external_reference");}
 if(orderFromURL()&&(!location.hash||location.hash==="#inicio"))history.replaceState(null,"",location.pathname+location.search+"#listo");
-function render(){const[r,arg]=(location.hash||"#inicio").slice(1).split("=");S.arg=decodeURIComponent(arg||"");const v=V[r]?r:"inicio";const o=V[v]();
+function render(){if(!FC||!FC.length)return; // todavía cargando el pronóstico (boot dibuja cuando llega)
+  const[r,arg]=(location.hash||"#inicio").slice(1).split("=");S.arg=decodeURIComponent(arg||"");const v=V[r]?r:"inicio";const o=V[v]();
   app.innerHTML=o.html;document.getElementById("url").textContent=o.url;document.title=(o.title?o.title+" · ":"")+"Olas UY";
   document.querySelectorAll(".dock a").forEach(a=>a.classList.toggle("on",a.dataset.sec===(o.sec||v)));o.after&&o.after();if(typeof paintCart==="function")paintCart();}
 function show(){if(vw.classList.contains("on"))closeViewer();if(typeof closeSim==="function")closeSim();if(typeof bs!=="undefined"&&bs.classList.contains("on")){bs.classList.remove("on");scrim.classList.remove("on");bsBeach=null;}if(document.startViewTransition&&!RM.matches)document.startViewTransition(()=>{render();scrollTo(0,0);});else{render();scrollTo(0,0);}}
