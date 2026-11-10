@@ -277,6 +277,11 @@ section{margin-top:44px}
 .vstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .vstats .stat{padding:10px 12px;min-width:0}
 .vstats .stat b{font-size:clamp(16px,5vw,22px);white-space:nowrap}
+.info{display:flex;flex-direction:column;gap:10px;margin-top:10px;max-height:62vh;overflow-y:auto}
+.ib{background:var(--foam);border-radius:18px;padding:12px 14px}
+.ib>b{display:block;margin-bottom:4px}
+.ib p{margin:0;color:var(--mut);font-size:15px;line-height:1.4}
+.ib .vrow{padding:6px 0}
 .vm{background:var(--white);border:1px solid var(--line);border-radius:22px;padding:14px 16px}
 .vmh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
 .vmh>b{font:800 19px/1.2 var(--display)}
@@ -1006,8 +1011,8 @@ function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender
     <div class="row" style="margin-top:16px;flex-wrap:nowrap"><button class="btn soft" id="back">←</button><button class="btn block" id="next">Seguir</button></div>`;
   if(st===3)body=`<h2>Tu precio por foto</h2>
     <div class="price-ctl"><button class="ibtn" id="minus" aria-label="Bajar precio">−</button><b class="tab" id="pv">${money(UP.price)}</b><button class="ibtn" id="plus" aria-label="Subir precio">+</button></div>
-    <p class="keep">Te quedan <b class="tab" id="kp">${money2(UP.price*(1-PLAT_FEE))}</b> por foto</p>
-    <p class="mut" style="text-align:center;font-size:14px;margin-top:4px">Olas UY se queda el 15% · Mercado Pago cobra su comisión aparte</p>
+    <p class="keep">Ganás <b class="tab" id="kp">${"≈ "+money2(UP.price*(1-PLAT_FEE-MP_FEE_EST))}</b> por foto</p>
+    <p style="text-align:center;margin-top:6px"><button class="link" data-payinfo="1">ℹ️ ¿Cómo cobro?</button></p>
     <div class="packs-ed" id="pkE"></div>
     <div class="row" style="margin-top:16px;flex-wrap:nowrap"><button class="btn soft" id="back">←</button><button class="btn coral block" id="pub" ${mpOk?"":"disabled"}>${mpOk?`Publicar ${fotos(UP.files.length)}`:"Conectá Mercado Pago para publicar"}</button></div>`;
   return R(seg+cardH(steps+body,mpBar),()=>{const $=id=>document.getElementById(id);wire();segWire();
@@ -1024,7 +1029,7 @@ function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender
       $("ubQ").oninput=()=>{const t=norm($("ubQ").value.trim());$("ub").querySelectorAll(".chip").forEach(c=>c.hidden=!!t&&!c.dataset.n.includes(t));$("ub").scrollLeft=0;};
       $("uk").onclick=e=>{const b=e.target.closest("[data-k]");if(b){UP.k=+b.dataset.k;$("uk").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c===b));}};
       const sel=$("ub").querySelector('[aria-pressed="true"]');sel&&sel.scrollIntoView({inline:"center",block:"nearest"});}
-    const setP=v=>{UP.price=Math.max(50,Math.min(5000,v));$("pv").textContent=money(UP.price);$("kp").textContent=money2(UP.price*(1-PLAT_FEE));mountPacks($("pkE"),UP,()=>UP.price,UP.files.length);};
+    const setP=v=>{UP.price=Math.max(50,Math.min(5000,v));$("pv").textContent=money(UP.price);$("kp").textContent="≈ "+money2(UP.price*(1-PLAT_FEE-MP_FEE_EST));mountPacks($("pkE"),UP,()=>UP.price,UP.files.length);};
     if($("plus")){$("plus").onclick=()=>setP(UP.price+50);$("minus").onclick=()=>setP(UP.price-50);}
     mountPacks($("pkE"),UP,()=>UP.price,UP.files.length);
     if($("pub"))$("pub").onclick=publishSession;});}
@@ -1067,6 +1072,26 @@ function mountPacks(el,st,unit,nAll){if(!el)return;const u=unit(),top=Math.min(3
     if(d){st.packs.splice(+d.dataset.del,1);mountPacks(el,st,unit,nAll);}};}
 // Antes de guardar: saca packs inválidos y baja al máximo los que se pasan
 const fixPacks=(packs,unit)=>cleanPacks(packs.map(p=>({n:p.n,price:Math.min(p.price,p.n*unit)})),unit);
+// ============ Información para el fotógrafo: comisiones y cuándo cobra ============
+// La comisión de Mercado Pago depende del plazo que el fotógrafo elija en su cuenta; acá se muestra aproximada
+// (en la prueba real de una venta de $50 llegaron $46,95: ~6,1% con IVA, cobrando al instante).
+const MP_FEE_EST=.061;
+function openPayInfo(price){const p=price||UP.price||300,ol=p*PLAT_FEE,mp=p*MP_FEE_EST,te=p-ol-mp;
+  sheet.innerHTML=`<div class="grab"></div><h2>¿Cómo cobro?</h2>
+    <div class="info">
+      <div class="ib"><b>💸 Cuánto ganás por cada foto de ${money(p)}</b>
+        <div class="vrow"><span>Paga el surfista</span><span class="tab">${plata(p)}</span></div>
+        <div class="vrow"><span>Olas UY (15%)</span><span class="tab">− ${money2(ol)}</span></div>
+        <div class="vrow"><span>Mercado Pago (aprox.)</span><span class="tab">− ${money2(mp)}</span></div>
+        <div class="vrow"><b>Te queda</b><b class="tab save">≈ ${money2(te)}</b></div></div>
+      <div class="ib"><b>⚡ La plata va directo a tu cuenta</b><p>Cuando el surfista paga, el dinero entra a <b>tu cuenta de Mercado Pago</b>. Olas UY nunca lo toca: Mercado Pago le pasa nuestro 15% automáticamente.</p></div>
+      <div class="ib"><b>⏱ ¿Cuándo la podés usar?</b><p>Depende del <b>plazo de cobro</b> que tengas en Mercado Pago: si la querés al instante, la comisión es más alta; si elegís esperar unos días, es más baja. Lo ves y lo cambiás en tu cuenta de Mercado Pago (costos y plazos).</p></div>
+      <div class="ib"><b>📦 Packs</b><p>Las comisiones se calculan sobre lo que pagó el surfista. Un pack nunca puede costar más que las fotos sueltas.</p></div>
+      <div class="ib"><b>📩 El comprador</b><p>Recibe la foto original sin marca de agua y puede descargarla durante 30 días. Si Mercado Pago devuelve un pago, la descarga se corta.</p></div>
+      <div class="ib"><b>🧾 Impuestos</b><p>Si vendés seguido, consultá con un contador cómo facturar.</p></div>
+    </div><button class="btn block" id="piOk" style="margin-top:14px">Entendido</button>`;
+  sheet.classList.add("on");scrim.classList.add("on");document.getElementById("piOk").onclick=closeSheet;}
+document.addEventListener("click",e=>{if(e.target.closest("[data-payinfo]")){e.preventDefault();openPayInfo();}});
 // Ventas del fotógrafo por mes: cuántas fotos, cuánto y en qué playas (my_sales, sin datos de compradores)
 const plata=n=>Number.isInteger(+n)?money(+n):money2(+n);
 function ventasHTML(sales){if(sales===undefined)return `<div class="msess">${[1,2].map(()=>`<div class="ms skel" style="height:120px"></div>`).join("")}</div>`;
@@ -1081,7 +1106,8 @@ function ventasHTML(sales){if(sales===undefined)return `<div class="msess">${[1,
       return `<div class="vm"><div class="vmh"><b>${mesTxt(k)}</b><span class="tab">${fotos(L.length)} · <b>${plata(t)}</b></span></div>
         ${Object.entries(B).sort((a,b)=>b[1].t-a[1].t).map(([b,v])=>`<div class="vrow"><span>📍 ${b}</span><span class="tab">${fotos(v.n)} · ${plata(v.t)}</span></div>`).join("")}
         <details><summary>Ver cada venta</summary>${L.map(x=>`<div class="vrow sm"><span>${new Date(x.paid_at).toLocaleDateString("es-UY",{day:"numeric",month:"numeric"})} · ${x.beach}${x.taken_at?` · foto de las ${t5(x.taken_at)}`:""}</span><span class="tab">${plata(x.amount)}</span></div>`).join("")}</details>
-        <p class="mut" style="font-size:14px;margin-top:6px">Ganancia: <b style="color:var(--g-bueno)">${plata(n)}</b></p></div>`;}).join("")}</div>`;}
+        <p class="mut" style="font-size:14px;margin-top:6px">Ganancia: <b style="color:var(--g-bueno)">${plata(n)}</b></p></div>`;}).join("")}
+    <p style="text-align:center"><button class="link" data-payinfo="1">ℹ️ ¿Cómo cobro?</button></p></div>`;}
 // Sesiones del fotógrafo (publicadas y ocultas) con sus ventas
 async function fetchMine(){const{data,error}=await SB.from("sessions").select("id,beach,day,start_time,end_time,price,packs,published,created_at,photos(count)").eq("photographer_id",ME.id).order("day",{ascending:false}).order("created_at",{ascending:false}).limit(200);if(error)throw error;
   const[cv,st]=await Promise.all([covers(data.map(x=>x.id)),SB.rpc("my_session_stats").then(r=>r.data||[])]);const m={};st.forEach(x=>m[x.session_id]=x);
@@ -1109,10 +1135,10 @@ function panelWire(mine){const g=document.getElementById("goUp");if(g)g.onclick=
 function openEditSession(x){const st={price:x.price,packs:cleanPacks(x.packs,x.price).map(p=>({...p}))};
   sheet.innerHTML=`<div class="grab"></div><h2>${x.beach} · ${dLbl(x.day)}</h2><p class="mut">${fotos(x.n)} · ${t5(x.start_time)}–${t5(x.end_time)}</p>
     <div class="price-ctl"><button class="ibtn" id="eMinus" aria-label="Bajar precio">−</button><b class="tab" id="ePv" style="font-size:48px;min-width:150px">${money(st.price)}</b><button class="ibtn" id="ePlus" aria-label="Subir precio">+</button></div>
-    <p class="keep" style="font-size:15px">Te quedan <b class="tab" id="eKp" style="font-size:18px">${money2(st.price*(1-PLAT_FEE))}</b> por foto</p>
+    <p class="keep" style="font-size:15px">Ganás <b class="tab" id="eKp" style="font-size:18px">${"≈ "+money2(st.price*(1-PLAT_FEE-MP_FEE_EST))}</b> por foto</p>
     <div class="packs-ed" id="ePk"></div><button class="btn block" id="eSave" style="margin-top:14px">Guardar</button>`;
   sheet.classList.add("on");scrim.classList.add("on");const $=id=>document.getElementById(id),mp=()=>mountPacks($("ePk"),st,()=>st.price,x.n);mp();
-  const setP=v=>{st.price=Math.max(50,Math.min(5000,v));$("ePv").textContent=money(st.price);$("eKp").textContent=money2(st.price*(1-PLAT_FEE));mp();};
+  const setP=v=>{st.price=Math.max(50,Math.min(5000,v));$("ePv").textContent=money(st.price);$("eKp").textContent="≈ "+money2(st.price*(1-PLAT_FEE-MP_FEE_EST));mp();};
   $("ePlus").onclick=()=>setP(st.price+10);$("eMinus").onclick=()=>setP(st.price-10);
   $("eSave").onclick=async()=>{const packs=fixPacks(st.packs,st.price);$("eSave").disabled=true;if(packs.some(p=>st.packs.find(q=>q.n===p.n&&q.price>p.price)))toast("Bajamos los packs que se pasaban del máximo");
     const{error}=await SB.from("sessions").update({price:st.price,packs}).eq("id",x.id);
