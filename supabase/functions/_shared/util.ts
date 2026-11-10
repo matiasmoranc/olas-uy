@@ -45,8 +45,8 @@ let r2: AwsClient | null = null; // se crea recién cuando se usa
 export const R2_PRIVATE = Deno.env.get("R2_PRIVATE_BUCKET") ?? "olasuy-originales";
 export const R2_PUBLIC = Deno.env.get("R2_PUBLIC_BUCKET") ?? "olasuy-previas";
 
-// Link firmado que vence: para subir (PUT) o descargar (GET) un archivo sin hacerlo público.
-export async function presign(method: "PUT" | "GET", bucket: string, key: string, seconds = 600, extra: Record<string, string> = {}) {
+// Link firmado que vence: para subir (PUT), descargar (GET) o borrar (DELETE) un archivo sin hacerlo público.
+export async function presign(method: "PUT" | "GET" | "DELETE", bucket: string, key: string, seconds = 600, extra: Record<string, string> = {}) {
   r2 ??= new AwsClient({ accessKeyId: env("R2_ACCESS_KEY_ID"), secretAccessKey: env("R2_SECRET_ACCESS_KEY"), service: "s3", region: "auto" });
   const url = new URL(`https://${env("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com/${bucket}/${key.split("/").map(encodeURIComponent).join("/")}`);
   url.searchParams.set("X-Amz-Expires", String(seconds));
@@ -99,4 +99,6 @@ export async function hmacHex(secret: string, msg: string) {
 export const one = <T>(x: T | T[] | null | undefined): T | undefined => (Array.isArray(x) ? x[0] : x ?? undefined);
 
 export const round2 = (n: number) => Math.round(n * 100) / 100;
+// Dirección del sitio (adonde vuelve Mercado Pago y a donde apuntan los mails).
+export const SITE = () => Deno.env.get("SITE_URL") ?? "https://matiasmoranc.github.io/olas-uy/";
 export const isUuid = (s: unknown): s is string => typeof s === "string" && /^[0-9a-f-]{36}$/i.test(s);

@@ -100,3 +100,15 @@ En **developer.apple.com → Certificates, Identifiers & Profiles**:
 4. En **GitHub → Settings → Secrets → Actions**, crear 3 secrets: `APPLE_TEAM_ID` (Team ID), `APPLE_KEY_ID` (Key ID) y `APPLE_PRIVATE_KEY` (abrir el .p8 con el Bloc de notas y pegar **todo** el texto, incluidas las líneas `-----BEGIN PRIVATE KEY-----` y `-----END PRIVATE KEY-----`).
 5. Correr la acción **Entrar con Apple** (`.github/workflows/apple-login.yml`): genera el secreto de Apple y lo carga en Supabase (activa el proveedor Apple con Client ID `uy.olas.web`). Se repite sola el día 1 de cada mes, así el secreto (que vence a los 6 meses) nunca vence.
 6. Poner `apple: true` en `config.js`.
+
+## 8. Mail al comprador con el link de descarga (Resend) · 10 min
+
+Cuando se confirma un pago, el servidor le manda al comprador un mail con sus fotos y los links para descargarlas (valen 30 días). Mientras no esté configurado, la compra funciona igual pero sin mail.
+
+1. Entrá a **resend.com** → *Sign up* (podés usar tu cuenta de GitHub). El plan gratis manda hasta 3.000 mails por mes.
+2. *Domains → Add domain* → `olas.uy` (región: la que esté más cerca, por ejemplo São Paulo).
+3. Resend te muestra 3 o 4 registros DNS (uno `TXT` llamado `resend._domainkey`, y un `MX` y un `TXT` llamados `send`). En **Cloudflare → olas.uy → DNS → Add record** cargá cada uno **tal cual**, con la nube gris (*DNS only*). No toques los registros `MX` que ya existen para recibir mails (privacidad@olas.uy).
+4. Volvé a Resend y tocá *Verify*. Puede tardar unos minutos.
+5. *API Keys → Create API key*: nombre `olas-uy`, permiso **Sending access**, dominio `olas.uy`. Copiá la clave (empieza con `re_`). (Secreta)
+6. En **GitHub → Settings → Secrets → Actions** creá `RESEND_API_KEY` con esa clave. (Opcional: `EMAIL_FROM` si querés otro remitente; por defecto es `Olas UY <fotos@olas.uy>`.)
+7. Corré **Actions → Servidor (Supabase) → Run workflow** para cargar la clave.
