@@ -59,7 +59,8 @@ nav.dock a.on{background:var(--ink);color:var(--white)}
 nav.dock{touch-action:none}
 /* sin zoom con doble toque ni selección de texto (sí se puede escribir y seleccionar en los campos) */
 html{touch-action:manipulation;overflow-x:hidden}
-body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+body{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+*{-webkit-user-select:none;user-select:none}
 input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text}
 @media (max-width:420px){nav.dock a{padding:8px 9px 7px;min-width:0;flex:1 1 0}nav.dock{width:calc(100% - 24px)}}
 
@@ -269,6 +270,16 @@ section{margin-top:44px}
 .seg{display:flex;background:var(--mist);border-radius:999px;padding:4px;margin:0 auto 16px;max-width:640px}
 .seg button{flex:1;border:0;background:none;border-radius:999px;padding:10px;font-weight:700;color:var(--mut)}
 .seg button[aria-pressed="true"]{background:var(--white);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.vstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.vstats .stat{padding:10px 12px;min-width:0}
+.vstats .stat b{font-size:clamp(16px,5vw,22px);white-space:nowrap}
+.vm{background:var(--white);border:1px solid var(--line);border-radius:22px;padding:14px 16px}
+.vmh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+.vmh>b{font:800 19px/1.2 var(--display)}
+.vrow{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-weight:600}
+.vrow.sm{font-size:14px;font-weight:500;color:var(--mut)}
+.vm summary{cursor:pointer;color:var(--aqua-d);font-weight:700;padding:8px 0 2px;list-style:none}
+.vm summary::-webkit-details-marker{display:none}
 .msess{display:flex;flex-direction:column;gap:12px;max-width:640px;margin:0 auto}
 .ms{display:grid;grid-template-columns:84px 1fr;gap:12px;background:var(--white);border:1px solid var(--line);border-radius:22px;padding:10px}
 .ms .cv{width:84px;height:84px;border-radius:16px;object-fit:cover;background:var(--mist);display:block}
@@ -962,9 +973,7 @@ function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender
   const mpBar=mpOk?"":`<div class="mpbar"><span><b>Conectá Mercado Pago</b><br><span class="mut" style="font-size:14px">Para cobrar tus ventas directo en tu cuenta.</span></span><button class="btn mp" id="mpC" style="padding:11px 16px;flex:0 0 auto">Conectar</button></div>`;
   const wire=()=>{const $=id=>document.getElementById(id);
     if($("mpC"))$("mpC").onclick=async()=>{$("mpC").disabled=true;const{data,error}=await SB.functions.invoke("mp-connect",{body:{}});if(data?.url)location.href=data.url;else{toast("No se pudo conectar. Probá de nuevo.");$("mpC").disabled=false;}};
-    if(SB&&ME)SB.rpc("my_sales").then(({data,error})=>{const el=$("earn");if(error||!el||!data?.length)return;
-      const m0=new Date(today.getFullYear(),today.getMonth(),1),mes=data.filter(x=>new Date(x.paid_at)>=m0),neto=mes.reduce((t,x)=>t+Number(x.amount)-Number(x.platform_fee),0);
-      el.innerHTML=`<span class="stat"><span class="mut">Este mes</span><b class="tab">${money(neto)}</b></span><span class="stat"><span class="mut">Vendidas</span><b class="tab">${mes.length}</b></span>`;el.hidden=false;});};
+};
   // ---- Subiendo
   if(UP.busy)return R(cardH(`<h2>Subiendo tus fotos…</h2><div class="prog"><i id="upP"></i></div><p class="mut tab" id="upT">${UP.done} de ${fotos(UP.total)}</p><p class="mut" style="font-size:14px;margin-top:6px">No cierres esta página hasta que termine.</p>`),paintProg);
   // ---- Publicada
@@ -973,9 +982,11 @@ function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender
   // ---- Panel: tus sesiones (o el asistente para subir una nueva)
   const mine=need("mine",fetchMine,30000);
   if(UP.tab===null&&mine!==undefined)UP.tab=mine&&mine.length?"panel":"subir";
-  const seg=`<div class="seg" role="group" aria-label="Vender"><button id="tabP" aria-pressed="${UP.tab==="panel"}">📋 Tus sesiones${mine&&mine.length?` (${mine.length})`:""}</button><button id="tabS" aria-pressed="${UP.tab!=="panel"}">⬆ Subir fotos</button></div>`;
-  const segWire=()=>{document.getElementById("tabP").onclick=()=>{UP.tab="panel";render();};document.getElementById("tabS").onclick=()=>{UP.tab="subir";render();};};
-  if(UP.tab==="panel")return R(`<div class="earn" id="earn" hidden></div>${mpBar}${seg}${panelHTML(mine)}`,()=>{wire();segWire();panelWire(mine);});
+  const seg=`<div class="seg" role="group" aria-label="Vender"><button id="tabP" aria-pressed="${UP.tab==="panel"}">📋 Sesiones</button><button id="tabV" aria-pressed="${UP.tab==="ventas"}">💰 Ventas</button><button id="tabS" aria-pressed="${UP.tab==="subir"}">⬆ Subir</button></div>`;
+  const segWire=()=>{[["tabP","panel"],["tabV","ventas"],["tabS","subir"]].forEach(([id,t])=>document.getElementById(id).onclick=()=>{UP.tab=t;render();});};
+  if(UP.tab==="panel")return R(`${mpBar}${seg}${panelHTML(mine)}`,()=>{wire();segWire();panelWire(mine);});
+  if(UP.tab==="ventas"){const sales=need("sales",()=>SB.rpc("my_sales").then(r=>{if(r.error)throw r.error;return r.data||[];}),30000);
+    return R(`${mpBar}${seg}${ventasHTML(sales)}`,()=>{wire();segWire();});}
   const st=UP.step,steps=`<div class="steps" aria-hidden="true">${[1,2,3].map(i=>`<span class="${i<=st?"on":""}"></span>`).join("")}</div>`;let body="";
   if(st===1)body=`<h2>Subí tus fotos</h2>
     <label class="drop" id="drop" for="uF" style="margin-top:14px"><span class="big">⬆︎</span><b>Arrastralas acá o tocá para elegir</b><span class="mut" style="font-size:14px">JPG en máxima calidad · la marca de agua se pone sola</span><input id="uF" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
@@ -1031,7 +1042,7 @@ function mountPacks(el,st,unit,nAll){if(!el)return;const u=unit();
   el.innerHTML=`<p><b>Packs con descuento</b> <span class="mut">(opcional)</span></p>
     ${st.packs.map((p,i)=>`<div class="pkrow" data-i="${i}"><span><input class="inp" type="number" inputmode="numeric" min="2" max="300" value="${p.n}" data-f="n" aria-label="Cantidad de fotos del pack">fotos</span><span>por $<input class="inp" type="number" inputmode="numeric" min="50" step="10" value="${p.price}" data-f="price" aria-label="Precio del pack"></span><span class="pkx${p.price>p.n*u||p.price<50?" bad":""}">${lbl(p)}</span><button class="ibtn sm" data-del="${i}" aria-label="Sacar este pack">✕</button></div>`).join("")}
     ${st.packs.length<6&&sug.length?`<div class="pk-add">${sug.map(n=>`<button class="chip" data-add="${n}">＋ ${n===nAll&&nAll>10?`Todas (${n})`:`${n} fotos`}</button>`).join("")}</div>`:""}
-    <p class="mut" style="font-size:13px">Ej: si cada foto vale ${money(u)}, 3 fotos no pueden costar más de ${money(3*u)}.</p>`;
+`;
   el.oninput=e=>{const f=e.target.dataset.f;if(!f)return;const row=e.target.closest(".pkrow"),p=st.packs[+row.dataset.i];p[f]=Math.trunc(+e.target.value||0);
     const x=row.querySelector(".pkx");x.textContent=lbl(p);x.classList.toggle("bad",p.price>p.n*u||p.price<50);};
   el.onclick=e=>{const a=e.target.closest("[data-add]"),d=e.target.closest("[data-del]");
@@ -1039,6 +1050,21 @@ function mountPacks(el,st,unit,nAll){if(!el)return;const u=unit();
     if(d){st.packs.splice(+d.dataset.del,1);mountPacks(el,st,unit,nAll);}};}
 // Antes de guardar: saca packs inválidos y baja al máximo los que se pasan
 const fixPacks=(packs,unit)=>cleanPacks(packs.map(p=>({n:p.n,price:Math.min(p.price,p.n*unit)})),unit);
+// Ventas del fotógrafo por mes: cuántas fotos, cuánto y en qué playas (my_sales, sin datos de compradores)
+const plata=n=>Number.isInteger(+n)?money(+n):money2(+n);
+function ventasHTML(sales){if(sales===undefined)return `<div class="msess">${[1,2].map(()=>`<div class="ms skel" style="height:120px"></div>`).join("")}</div>`;
+  if(!sales||!sales.length)return `<div class="card" style="max-width:640px;margin:0 auto;text-align:center"><h2>Todavía no vendiste fotos</h2><p class="mut" style="margin-top:6px">Acá vas a ver cada venta, por mes y por playa.</p></div>`;
+  const tot=sales.reduce((t,x)=>t+Number(x.amount),0),net=sales.reduce((t,x)=>t+Number(x.amount)-Number(x.platform_fee),0),M={};
+  sales.forEach(x=>{const d=new Date(x.paid_at),k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;(M[k]||(M[k]=[])).push(x);});
+  const mesTxt=k=>{const s=new Date(k+"-15T12:00").toLocaleDateString("es-UY",{month:"long",year:"numeric"}).replace(" de "," ");return s[0].toUpperCase()+s.slice(1);};
+  return `<div class="msess">
+    <div class="vstats"><span class="stat"><span class="mut">Vendiste</span><b class="tab">${sales.length} ${sales.length===1?"foto":"fotos"}</b></span><span class="stat"><span class="mut">Total</span><b class="tab">${plata(tot)}</b></span><span class="stat"><span class="mut">Para vos</span><b class="tab" style="color:var(--g-bueno)">${plata(net)}</b></span></div>
+    ${Object.keys(M).sort().reverse().map(k=>{const L=M[k],t=L.reduce((a,x)=>a+Number(x.amount),0),n=L.reduce((a,x)=>a+Number(x.amount)-Number(x.platform_fee),0),B={};
+      L.forEach(x=>{(B[x.beach]||(B[x.beach]={n:0,t:0})).n++;B[x.beach].t+=Number(x.amount);});
+      return `<div class="vm"><div class="vmh"><b>${mesTxt(k)}</b><span class="tab">${fotos(L.length)} · <b>${plata(t)}</b></span></div>
+        ${Object.entries(B).sort((a,b)=>b[1].t-a[1].t).map(([b,v])=>`<div class="vrow"><span>📍 ${b}</span><span class="tab">${fotos(v.n)} · ${plata(v.t)}</span></div>`).join("")}
+        <details><summary>Ver cada venta</summary>${L.map(x=>`<div class="vrow sm"><span>${new Date(x.paid_at).toLocaleDateString("es-UY",{day:"numeric",month:"numeric"})} · ${x.beach}${x.taken_at?` · foto de las ${t5(x.taken_at)}`:""}</span><span class="tab">${plata(x.amount)}</span></div>`).join("")}</details>
+        <p class="mut" style="font-size:13px;margin-top:6px">Para vos: <b style="color:var(--g-bueno)">${plata(n)}</b> (sin el 15% de Olas UY)</p></div>`;}).join("")}</div>`;}
 // Sesiones del fotógrafo (publicadas y ocultas) con sus ventas
 async function fetchMine(){const{data,error}=await SB.from("sessions").select("id,beach,day,start_time,end_time,price,packs,published,created_at,photos(count)").eq("photographer_id",ME.id).order("day",{ascending:false}).order("created_at",{ascending:false}).limit(200);if(error)throw error;
   const[cv,st]=await Promise.all([covers(data.map(x=>x.id)),SB.rpc("my_session_stats").then(r=>r.data||[])]);const m={};st.forEach(x=>m[x.session_id]=x);
@@ -1050,7 +1076,7 @@ function panelHTML(mine){if(mine===undefined)return `<div class="msess">${[1,2].
     <div style="min-width:0"><span class="pill${x.published?"":" off"}" style="${x.published?"--c:color-mix(in srgb,var(--g-bueno) 25%,white)":""}">${x.published?"Publicada":"Oculta"}</span>
       <h3>${x.beach} · ${dLbl(x.day)} · ${t5(x.start_time)}–${t5(x.end_time)}</h3>
       <div class="sub">${fotos(x.n)} · ${money(x.price)} c/u${pk.length?` · 📦 ${pk.map(p=>`${p.n} por ${money(p.price)}`).join(", ")}`:""}</div>
-      <div class="sub">${x.sold?`<b class="save">${x.sold} vendida${x.sold===1?"":"s"} · te quedan ${money(x.net)}</b>`:"Sin ventas todavía"}</div></div>
+      <div class="sub">${x.sold?`<b class="save">${x.sold} vendida${x.sold===1?"":"s"}</b>`:"Sin ventas todavía"}</div></div>
     <div class="acts"><button class="btn soft" data-edit="${x.id}">✏️ Editar</button><button class="btn soft" data-pubt="${x.id}">${x.published?"🙈 Ocultar":"👁 Publicar"}</button>${x.published?`<button class="btn soft" data-go="sesion=${x.id}">Ver</button>`:""}<button class="btn soft del" data-delses="${x.id}" aria-label="Borrar sesión">🗑</button></div></div>`;}).join("")}</div>`;}
 function panelWire(mine){const g=document.getElementById("goUp");if(g)g.onclick=()=>{UP.tab="subir";render();};
   const box=document.querySelector(".msess");if(!box||!mine)return;const byId=id=>mine.find(x=>x.id===id);
