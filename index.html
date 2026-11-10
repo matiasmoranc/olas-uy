@@ -458,6 +458,8 @@ function render(){const[r,arg]=(location.hash||"#inicio").slice(1).split("=");S.
 function show(){if(vw.classList.contains("on"))closeViewer();if(typeof closeSim==="function")closeSim();if(typeof bs!=="undefined"&&bs.classList.contains("on")){bs.classList.remove("on");scrim.classList.remove("on");bsBeach=null;}if(document.startViewTransition&&!RM.matches)document.startViewTransition(()=>{render();scrollTo(0,0);});else{render();scrollTo(0,0);}}
 addEventListener("hashchange",show);
 function go(r){if(location.hash==="#"+r)show();else location.hash=r;}
+// Tocar una playa en el inicio: va al pronóstico y abre esa playa.
+document.addEventListener("click",e=>{const el=e.target.closest("[data-beach-go]");if(el){S.goBeach=el.dataset.beachGo;S.sel={};S.day=0;S.hr=H0;}});
 document.addEventListener("click",e=>{const el=e.target.closest("[data-go]");if(!el)return;e.preventDefault();
   if(el.dataset.sess)S.sess=SESSIONS.find(s=>s.id===+el.dataset.sess);
   if(el.dataset.photog)S.photog=ph(el.dataset.photog);
@@ -486,12 +488,12 @@ V.inicio=()=>{const best0=[...FC].sort((a,b)=>at(b,H0).sc-at(a,H0).sc)[0],bo=bes
     <canvas id="sea" aria-hidden="true"></canvas>
     <div><h1>${best.h<.3?"Hoy está <span>plano.</span>":"Hoy hay <span>olas.</span>"}</h1></div>
     <div>
-      <a class="best" href="#olas"><b class="tab">${m1(best.h)}<small> m</small></b><span><span class="pill" style="--c:${GR[best.g][1]}">${GR[best.g][0]}</span><br><b style="font:700 18px var(--body);letter-spacing:0">${best.b}</b> <span class="mut">· ${best.best}</span></span></a>
+      <a class="best" href="#olas" data-beach-go="${best.b}" aria-label="Ver ${best.b}"><b class="tab">${m1(best.h)}<small> m</small></b><span><span class="pill" style="--c:${GR[best.g][1]}">${GR[best.g][0]}</span><br><b style="font:700 18px var(--body);letter-spacing:0">${best.b}</b> <span class="mut">· Ahora</span></span></a>
       <div class="cta"><a class="btn" href="#olas">Ver olas</a><a class="btn coral" href="#fotos">Buscar mis fotos</a></div>
     </div>
   </div>
   <section><div class="sh"><h2>Ahora</h2><a href="#olas">Todas →</a></div>
-    <div class="rail">${nowOrder().map(F=>{const f=at(F,H0);return `<a class="spot" href="#olas"><span class="top"><span style="font-weight:700;line-height:1.15">${FAVS.has(F.b)?'<span style="color:var(--g-malo)">♥</span> ':""}${F.b}</span><span class="h tab" style="font-size:30px;white-space:nowrap">${m1(f.h)}<small> m</small></span></span><span class="sc tab" style="--c:${GR[f.g][1]}">⭐ ${m1(f.sc)}<small>/10</small></span><span class="mini tab"><span>${clock}${f.per} s</span><span style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}</span></span></a>`;}).join("")}</div></section>
+    <div class="rail">${nowOrder().map(F=>{const f=at(F,H0);return `<a class="spot" href="#olas" data-beach-go="${F.b}"><span class="top"><span style="font-weight:700;line-height:1.15">${FAVS.has(F.b)?'<span style="color:var(--g-malo)">♥</span> ':""}${F.b}</span><span class="h tab" style="font-size:30px;white-space:nowrap">${m1(f.h)}<small> m</small></span></span><span class="sc tab" style="--c:${GR[f.g][1]}">⭐ ${m1(f.sc)}<small>/10</small></span><span class="mini tab"><span>${clock}${f.per} s</span><span style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}</span></span></a>`;}).join("")}</div></section>
   <section><div class="sh"><h2>Recién subidas${isReal()?"":` <span class="pill" style="vertical-align:middle;font-family:var(--body);letter-spacing:0">Ejemplo</span>`}</h2><a href="#fotos">Buscar →</a></div>
     ${isReal()?recentReal():`<div class="rail">${SESSIONS.map(s=>`<button class="shot" data-go="sesion" data-sess="${s.id}" aria-label="${s.beach}, ${dayName(s.k)}"><img src="${photo(s.seed*100+3,true)}" alt="" loading="lazy"><div class="wm"></div><span class="cap"><span>${s.beach}<br><small>${dayName(s.k)} · ${s.from}</small></span><small>${s.n} 📷</small></span></button>`).join("")}</div>`}</section>
   <section class="sell"><div><h2>¿Sacás fotos de surf?</h2><p class="mut" style="margin-top:8px">Subilas, poné tu precio y cobrá con Mercado Pago.</p></div><a class="btn" href="#vender">Empezar a vender</a></section>`,after:sea};};
@@ -503,7 +505,7 @@ function waveCard(F,inSheet){const own=S.sel[F.b],[d,hr]=own||[S.day,S.hr],f=at(
     <span class="hours">${spark(F,d,hr)}<span class="hl" aria-hidden="true">${[0,6,12,18].map(k=>`<span style="left:${k/24*100}%">${k} h</span>`).join("")}</span></span>
     <button class="simb" data-sim="${F.b}" aria-label="Ver simulación de la ola en ${F.b}, ${clkLbl(d,hr)}">▶ Simulación</button>
     <span class="more" style="flex-direction:column"><span class="wk7" aria-label="Mejor puntaje de cada día">${[...Array(NDAYS).keys()].map(k=>{const x=bestOf(F,k);return `<button data-day="${k}" aria-pressed="${k===d}" style="--c:${GR[x.g][1]}" aria-label="${DIAS_F(k)}: mejor puntaje ${m1(x.sc)}">${k===1?"Mañ":DIAS_F(k).split(" ")[0]}<b class="tab">${m1(x.sc)}</b></button>`;}).join("")}</span>
-      <span class="row" style="gap:8px"><span class="kv">Mejor ${DIAS_F(d).toLowerCase()}<b>${bo.clk}–${bo.clk+3} h</b></span><span class="kv">Viento<b>${WK[f.wk].t}</b></span><span class="kv" data-go="fotos" data-beach="${F.b}" style="background:var(--sand)">Fotos<b>Ver →</b></span></span></span></div>`;}
+      <span class="row" style="gap:8px"><span class="kv">Mejor ${DIAS_F(d).toLowerCase()}<b>${bo.clk}–${Math.min(24,bo.clk+3)} h</b></span><span class="kv">Viento<b>${WK[f.wk].t}</b></span><span class="kv" data-go="fotos" data-beach="${F.b}" style="background:var(--sand)">Fotos<b>Ver →</b></span></span></span></div>`;}
 
 // ---- Mapa con zoom (rueda, pellizco, arrastre y botones)
 const MV={x:0,y:0,w:0};
@@ -712,7 +714,7 @@ V.olas=()=>{const idx=S.day*24+S.hr,byScore=(a,b)=>at(b,idx).sc-at(a,idx).sc;
   ${favs.length?`<div class="subh">♥ Favoritas</div><div class="waves">${favs.map(F=>waveCard(F)).join("")}</div>`:`<div class="fav-empty" style="margin-top:10px">Tocá ♡ en una playa para tenerla siempre acá</div>`}
   ${most.length?`<div class="subh">👀 Las que más mirás</div><div class="waves">${most.map(F=>waveCard(F)).join("")}</div>`:""}
   <section style="margin-top:30px"><h2 style="margin-bottom:12px">Todas</h2><div class="waves">${rest.map(F=>waveCard(F)).join("")}</div></section>`,
-  after(){mapWire();
+  after(){mapWire();if(S.goBeach){const b=S.goBeach;S.goBeach=null;setTimeout(()=>openBeach(b,true),60);}
     const R=document.getElementById("tR");R.oninput=()=>{S.sel={};S.hr=+R.value;olasPaint(false);};R.onchange=()=>olasPaint(true);
     document.getElementById("days").onclick=e=>{const b=e.target.closest("[data-d]");if(b)setDay(+b.dataset.d);};
     const sel=document.querySelector('#days [aria-pressed="true"]');sel&&sel.scrollIntoView({inline:"center",block:"nearest"});}};};
