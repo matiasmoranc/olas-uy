@@ -414,6 +414,14 @@ const MAPPOS={"Kiyú": [-34.70231, -56.73234], "Pocitos": [-34.9136, -56.14412],
 let GEO_P=null;const geoLoad=()=>GEO_P||=new Promise((ok,ko)=>{const s=document.createElement("script");s.src="geo.js?v=70ba5c51";s.onload=ok;s.onerror=()=>{GEO_P=null;ko();};document.head.appendChild(s);});
 const PJ=(lat,lon)=>[(lon+59.4)*92.8,(-29.6-lat)*111];
 let FAVS=new Set(),VIEWS={};try{FAVS=new Set(JSON.parse(localStorage.getItem("olasuy-maq-favs")||"[]"));VIEWS=JSON.parse(localStorage.getItem("olasuy-maq-views")||"{}");}catch(e){}
+// Favoritas en la cuenta (user_metadata.favs): siguen al entrar desde otro dispositivo.
+// La primera vez en cada dispositivo se suman las de la cuenta y las que había acá; después manda la cuenta.
+let favT=null;
+function pushFavs(){if(!SB||!ME)return;clearTimeout(favT);favT=setTimeout(()=>SB.auth.updateUser({data:{favs:[...FAVS]}}).catch(()=>{}),600);}
+function syncFavs(){if(!ME)return;const m=ME.user_metadata?.favs,remote=Array.isArray(m)?m.filter(b=>BEACHES.includes(b)):null,k="olasuy-favsync-"+ME.id;
+  let first=true;try{first=!localStorage.getItem(k);localStorage.setItem(k,"1");}catch(e){}
+  const next=remote===null||first?[...new Set([...(remote||[]),...FAVS])]:remote,changed=next.length!==FAVS.size||next.some(b=>!FAVS.has(b));
+  FAVS=new Set(next);saveFV();if(remote===null||next.length!==remote.length||next.some(b=>!remote.includes(b)))pushFavs();if(changed)render();}
 const saveFV=()=>{try{localStorage.setItem("olasuy-maq-favs",JSON.stringify([...FAVS]));localStorage.setItem("olasuy-maq-views",JSON.stringify(VIEWS));}catch(e){}};
 const seen=b=>{VIEWS[b]=(VIEWS[b]||0)+1;saveFV();};
 const clkLbl=(d,h)=>d===0&&h===H0?"Ahora":`${DIAS_F(d)} · ${h}:00`;
@@ -487,7 +495,8 @@ const app=document.getElementById("app"),V={};
 // Mercado Pago vuelve con ?orden=… o ?external_reference=… (y a veces sin el #): ir directo a la descarga
 function orderFromURL(){const q=new URLSearchParams(location.search);return q.get("orden")||q.get("external_reference");}
 if(orderFromURL()&&(!location.hash||location.hash==="#inicio"))history.replaceState(null,"",location.pathname+location.search+"#listo");
-function render(){const[r,arg]=(location.hash||"#inicio").slice(1).split("=");S.arg=decodeURIComponent(arg||"");const v=V[r]?r:"inicio";const o=V[v]();
+function render(){if(!FC||!FC.length)return; // todavía cargando el pronóstico (boot dibuja cuando llega)
+  const[r,arg]=(location.hash||"#inicio").slice(1).split("=");S.arg=decodeURIComponent(arg||"");const v=V[r]?r:"inicio";const o=V[v]();
   app.innerHTML=o.html;document.getElementById("url").textContent=o.url;document.title=(o.title?o.title+" · ":"")+"Olas UY";
   document.querySelectorAll(".dock a").forEach(a=>a.classList.toggle("on",a.dataset.sec===(o.sec||v)));o.after&&o.after();if(typeof paintCart==="function")paintCart();}
 function show(){if(vw.classList.contains("on"))closeViewer();if(typeof closeSim==="function")closeSim();if(typeof bs!=="undefined"&&bs.classList.contains("on")){bs.classList.remove("on");scrim.classList.remove("on");bsBeach=null;}if(document.startViewTransition&&!RM.matches)document.startViewTransition(()=>{render();scrollTo(0,0);});else{render();scrollTo(0,0);}}
@@ -544,8 +553,10 @@ function waveCard(F,inSheet){const own=S.sel[F.b],[d,hr]=own||[S.day,S.hr],f=at(
 
 // ---- Mapa con zoom (rueda, pellizco, arrastre y botones)
 const MV={x:0,y:0,w:0};
-function mapFit(el){const[x0,y0]=PJ(-31.2,-58.5),[x1,y1]=PJ(-35.1,-53.05);const r=el.getBoundingClientRect(),asp=r.height/r.width;
-  let w=(x1-x0)*1.04,h=w*asp;if(h<(y1-y0)*1.04){h=(y1-y0)*1.04;w=h/asp;}MV.w=w;MV.x=(x0+x1)/2-w/2;MV.y=(y0+y1)/2-h/2;}
+// Encuadre inicial: la costa con todas las playas (con un margen). Alejando se ve todo el país.
+function mapFit(el){const ll=Object.values(MAPPOS),la=ll.map(p=>p[0]),lo=ll.map(p=>p[1]);const[x0,y0]=PJ(Math.max(...la)+.12,Math.min(...lo)-.12),[x1,y1]=PJ(Math.min(...la)-.12,Math.max(...lo)+.12);const r=el.getBoundingClientRect();
+  // a la derecha quedan 60 px libres para los botones de zoom
+  const uw=Math.max(100,r.width-60),k=Math.max((x1-x0)/uw,(y1-y0)/r.height);MV.w=k*r.width;MV.x=(x0+x1)/2-uw*k/2;MV.y=(y0+y1)/2-r.height*k/2;}
 function mapDraw(){const sv=document.getElementById("msv");if(!sv)return;if(!window.GEO_READY){geoLoad().then(mapDraw,()=>toast("No se pudo cargar el mapa"));return;}const r=sv.getBoundingClientRect();if(!r.width)return;const h=MV.w*r.height/r.width,k=MV.w/r.width,i=S.day*24+S.hr;
   sv.setAttribute("viewBox",`${MV.x} ${MV.y} ${MV.w} ${h}`);
   const big=MV.w<150,names=MV.w<38,far=MV.w>300;
@@ -733,7 +744,7 @@ const pickBars=e=>{const sv=e.target.closest&&e.target.closest(".sp");if(!sv)ret
 function cardEvents(root){
   root.addEventListener("pointerdown",e=>{if(pickBars(e)){dragBars=true;e.preventDefault();}});
   root.addEventListener("pointermove",e=>{if(dragBars)pickBars(e);});
-  root.addEventListener("click",e=>{const fv=e.target.closest("[data-fav]");if(fv){e.stopPropagation();const b=fv.dataset.fav;FAVS.has(b)?FAVS.delete(b):FAVS.add(b);saveFV();toast(FAVS.has(b)?`${b} está en tus playas ♥`:`${b} salió de tus playas`);if(location.hash==="#olas")render();paintSheet();return;}
+  root.addEventListener("click",e=>{const fv=e.target.closest("[data-fav]");if(fv){e.stopPropagation();const b=fv.dataset.fav;FAVS.has(b)?FAVS.delete(b):FAVS.add(b);saveFV();pushFavs();toast(FAVS.has(b)?`${b} está en tus playas ♥`:`${b} salió de tus playas`);if(location.hash==="#olas")render();paintSheet();return;}
     const sm=e.target.closest("[data-sim]");if(sm){e.stopPropagation();openSim(sm.dataset.sim);return;}
     const rs=e.target.closest("[data-reset]");if(rs){e.stopPropagation();delete S.sel[rs.dataset.reset];paintBeach(rs.dataset.reset);return;}
     const dd=e.target.closest("[data-day]");if(dd){const card=dd.closest(".wv"),b=card.dataset.b,k=+dd.dataset.day,F=FC.find(x=>x.b===b);S.sel[b]=[k,k===0?Math.max(H0,bestOf(F,0).clk):bestOf(F,k).clk];paintBeach(b);return;}
@@ -1214,11 +1225,11 @@ async function initAccounts(){
   if(!CFG.supabaseUrl||!CFG.supabaseAnonKey)return;
   try{await new Promise((ok,ko)=>{const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";sc.onload=ok;sc.onerror=ko;document.head.appendChild(sc);});
     SB=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey);
-    const{data}=await SB.auth.getSession();ME=data.session?.user||null;paintAcct();
+    const{data}=await SB.auth.getSession();ME=data.session?.user||null;paintAcct();syncFavs();
     // Al entrar: sumar a la cuenta las compras hechas antes solo con este mail
     if(ME)SB.rpc("claim_purchases").then(()=>{},()=>{});
     SB.auth.onAuthStateChange((ev,ses)=>{const was=ME?.id;ME=ses?.user||null;paintAcct();if(ev==="SIGNED_IN"){SB.rpc("claim_purchases").then(()=>{},()=>{});}
-      if(was!==ME?.id){PH_ME=undefined;if(location.hash==="#vender")render();}});
+      if(was!==ME?.id){PH_ME=undefined;syncFavs();if(location.hash==="#vender")render();}});
     // Vuelta desde Mercado Pago (conexión del fotógrafo)
     const qs=new URLSearchParams(location.search);if(qs.get("mp")){toast(qs.get("mp")==="ok"?"Mercado Pago conectado ✓":"No se pudo conectar Mercado Pago");qs.delete("mp");history.replaceState(null,"",location.pathname+(qs.toString()?"?"+qs:"")+location.hash);}
     render();
