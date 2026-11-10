@@ -957,7 +957,7 @@ async function publishSession(){UP.busy=true;UP.done=0;UP.total=UP.files.length;
       const meta=await Promise.all(chunk.map(async f=>({ext:EXT_OF[f.type]||"jpg",taken_at:inSes(await exifTime(f))||inSes(hm(f.lastModified))||UP.from.replace(/^0/,"")})));
       const{data:urls,error:e2}=await SB.functions.invoke("r2-upload",{body:{session_id:ses.id,files:meta}});if(e2)throw new Error("No se pudo preparar la subida: "+(await fnMsg(e2)));
       for(let j=0;j<chunk.length;j++){const f=chunk[j],u=urls[j];
-        const pv=await rendition(f,1600,.82,.4),th=await rendition(f,520,.72,.6);
+        const pv=await rendition(f,1600,.78,.22),th=await rendition(f,520,.7,.45);
         await put(u.original,f,f.type||"image/jpeg");await put(u.preview,pv,"image/jpeg");await put(u.thumb,th,"image/jpeg");
         const{error:e3}=await SB.from("photos").update({ready:true}).eq("id",u.id);if(e3)throw e3;UP.done++;paintProg();}}
     const{error:e4}=await SB.from("sessions").update({published:true}).eq("id",ses.id);if(e4)throw e4;
