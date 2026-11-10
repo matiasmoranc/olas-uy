@@ -1,7 +1,8 @@
 // Aviso de Mercado Pago cuando cambia un pago. Si está aprobado y el monto coincide,
-// marca la orden como pagada (y se habilitan las descargas).
+// marca la orden como pagada (y se habilitan las descargas) y le manda el mail con los links al comprador.
 // Mercado Pago llama a: /functions/v1/mp-webhook?ph=<fotógrafo>  (lo pusimos en checkout)
 import { admin, hmacHex, MP_API, mpToken, round2 } from "../_shared/util.ts";
+import { sendPurchaseMail } from "../_shared/mail.ts";
 
 const ok = () => new Response("ok", { status: 200 });
 
@@ -37,8 +38,10 @@ Deno.serve(async (req) => {
     const total = round2(rows.reduce((t, x) => t + Number(x.amount), 0));
 
     if (pay.status === "approved" && round2(Number(pay.transaction_amount)) >= total && pay.currency_id === "UYU") {
-      await admin.from("purchases").update({ status: "paid", paid_at: new Date().toISOString(), mp_payment_id: paymentId })
-        .eq("order_id", orderId).eq("status", "pending");
+      const { data: now } = await admin.from("purchases").update({ status: "paid", paid_at: new Date().toISOString(), mp_payment_id: paymentId })
+        .eq("order_id", orderId).eq("status", "pending").select("id");
+      // Solo el aviso que efectivamente la marcó pagada manda el mail (Mercado Pago a veces avisa dos veces)
+      if (now?.length) { try { await sendPurchaseMail(orderId); } catch (e) { console.error("mail", e); } }
     } else if (["refunded", "charged_back"].includes(pay.status)) {
       await admin.from("purchases").update({ status: "refunded" }).eq("order_id", orderId);
     } else if (["rejected", "cancelled"].includes(pay.status)) {

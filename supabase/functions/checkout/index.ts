@@ -1,10 +1,10 @@
 // Compra: arma el pago en Mercado Pago (modelo marketplace).
 // El pago se cobra en la cuenta del FOTÓGRAFO y Mercado Pago le pasa a Olas UY su comisión
 // (marketplace_fee) automáticamente. Opción A: el comprador paga el precio publicado.
+// Packs: si la sesión tiene packs ("3 fotos por $120"), se cobra la combinación más barata (bestPrice).
 // POST { photo_ids: [...], email }  (todas las fotos del mismo fotógrafo)  → { url }
-import { admin, cors, env, isUuid, json, MP_API, mpToken, one, PLATFORM_FEE, round2, userFrom } from "../_shared/util.ts";
-
-const SITE = () => Deno.env.get("SITE_URL") ?? "https://matiasmoranc.github.io/olas-uy/";
+import { admin, cors, env, isUuid, json, MP_API, mpToken, one, PLATFORM_FEE, round2, SITE, userFrom } from "../_shared/util.ts";
+import { bestPrice, cleanPacks } from "../_shared/price.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors(req) });
@@ -14,13 +14,13 @@ Deno.serve(async (req) => {
     const { photo_ids, email } = await req.json();
     const mail = String(email ?? user?.email ?? "").trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return json(req, { error: "Revisá tu mail" }, 400);
-    if (!Array.isArray(photo_ids) || photo_ids.length < 1 || photo_ids.length > 50 || !photo_ids.every(isUuid)) {
+    if (!Array.isArray(photo_ids) || photo_ids.length < 1 || photo_ids.length > 300 || !photo_ids.every(isUuid)) {
       return json(req, { error: "Elegí al menos una foto" }, 400);
     }
     const ids = [...new Set(photo_ids)];
 
     const { data: raw, error } = await admin.from("photos")
-      .select("id, ready, taken_at, session:sessions(id, beach, day, price, published, photographer_id)")
+      .select("id, ready, taken_at, session:sessions(id, beach, day, price, packs, published, photographer_id)")
       .in("id", ids);
     if (error) throw error;
     const photos = (raw ?? []).map((p) => ({ ...p, session: one(p.session) }));
@@ -34,30 +34,42 @@ Deno.serve(async (req) => {
     const mp = await mpToken(photographerId);
     if (!mp) return json(req, { error: "Este fotógrafo todavía no puede cobrar" }, 409);
 
+    // Precio por sesión (con packs) y reparto del total entre sus fotos
     const orderId = crypto.randomUUID();
-    const rows = photos.map((p) => {
-      const amount = round2(p.session!.price);
-      return {
-        order_id: orderId, photo_id: p.id, photographer_id: photographerId,
-        buyer_id: user?.id ?? null, buyer_email: mail,
-        amount, platform_fee: round2(amount * PLATFORM_FEE),
-      };
-    });
+    const bySession = new Map<string, typeof photos>();
+    for (const p of photos) bySession.set(p.session!.id, [...(bySession.get(p.session!.id) ?? []), p]);
+    const rows: Record<string, unknown>[] = [];
+    const items: Record<string, unknown>[] = [];
+    for (const list of bySession.values()) {
+      const s = list[0].session!, unit = Number(s.price);
+      const { total, used } = bestPrice(list.length, unit, cleanPacks(s.packs, unit));
+      const each = Math.floor((total / list.length) * 100) / 100;
+      list.forEach((p, i) => {
+        const amount = i === list.length - 1 ? round2(total - each * (list.length - 1)) : each;
+        rows.push({
+          order_id: orderId, photo_id: p.id, photographer_id: photographerId,
+          buyer_id: user?.id ?? null, buyer_email: mail,
+          amount, platform_fee: round2(amount * PLATFORM_FEE),
+        });
+      });
+      const packTxt = used.length ? ` (${used.map((u) => `${u.times > 1 ? u.times + "× " : ""}pack ${u.n}`).join(" + ")})` : "";
+      items.push({
+        id: s.id,
+        title: `${list.length === 1 ? "Foto" : list.length + " fotos"} de surf · ${s.beach} ${s.day}${packTxt}`,
+        quantity: 1,
+        unit_price: round2(total),
+        currency_id: "UYU",
+      });
+    }
     const { error: e2 } = await admin.from("purchases").insert(rows);
     if (e2) throw e2;
-    const fee = round2(rows.reduce((t, r) => t + r.platform_fee, 0));
+    const fee = round2(rows.reduce((t, r) => t + Number(r.platform_fee), 0));
 
     const pref = await fetch(`${MP_API}/checkout/preferences`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${mp.token}` },
       body: JSON.stringify({
-        items: photos.map((p) => ({
-          id: p.id,
-          title: `Foto de surf · ${p.session!.beach} ${p.session!.day}${p.taken_at ? " " + String(p.taken_at).slice(0, 5) : ""}`,
-          quantity: 1,
-          unit_price: round2(p.session!.price),
-          currency_id: "UYU",
-        })),
+        items,
         marketplace_fee: fee,
         payer: { email: mail },
         external_reference: orderId,
