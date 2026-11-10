@@ -150,6 +150,11 @@ section{margin-top:44px}
 
 /* ===== Fotos ===== */
 .ask{font:800 clamp(26px,5vw,40px)/1.05 var(--display);letter-spacing:-.03em;margin:8px 0 14px}
+.frow{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+.frow .btn{padding:12px 16px;font-size:15px;white-space:nowrap;flex:0 0 auto}
+.fsearch{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;background:var(--white);border:1.5px solid var(--line);border-radius:999px;padding:0 14px;height:48px}
+.fsearch input{border:0;outline:0;background:none;font:600 16px var(--body);color:var(--ink);width:100%;min-width:0}
+.fsearch:focus-within{border-color:var(--aqua)}
 .chip{border:1.5px solid var(--line);background:var(--white);border-radius:999px;padding:10px 16px;font-weight:700;font-size:15px;white-space:nowrap;transition:background .2s,color .2s,border-color .2s}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--white);border-color:var(--ink)}
 .bchip{display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:none;padding:0;width:76px;font-weight:600;font-size:13px;color:var(--mut)}
@@ -310,6 +315,7 @@ section{margin-top:44px}
 const BEACHES=["Kiyú","Pocitos","Solymar","El Pinar","Bello Horizonte","Cuchilla Alta","Punta Negra","Piriápolis","El Emir","Playa Brava","Montoya","José Ignacio","La Balconada","Los Botes","La Aguada","La Pedrera","Punta Rubia","Cabo Polonio","Barra de Valizas","Punta del Diablo","Santa Teresa"];
 const ZONE=b=>["Kiyú","Pocitos","Solymar","El Pinar"].includes(b)?"Montevideo":["Bello Horizonte","Cuchilla Alta","Punta Negra","Piriápolis"].includes(b)?"Canelones":["El Emir","Playa Brava","Montoya","José Ignacio"].includes(b)?"Punta del Este":"Rocha";
 const slug=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const norm=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const GR=[["Plano","var(--g-plano)"],["Malo","var(--g-malo)"],["Regular","var(--g-reg)"],["Bueno","var(--g-bueno)"],["Muy bueno","var(--g-muy)"],["Peligroso","var(--g-pel)"]];
 function rng(seed){let a=(seed*9301+49297)%2147483647;return()=>{a=(a*16807)%2147483647;return(a-1)/2147483646;};}
 // Pronóstico de ejemplo por playa: altura ahora, calificación y 24 h
@@ -532,10 +538,11 @@ function mapZoom(f,cx,cy){const sv=document.getElementById("msv"),r=sv.getBoundi
 function mapTo(cx,cy,nw,fy){const sv=document.getElementById("msv");if(!sv)return;const r=sv.getBoundingClientRect(),hh=nw*r.height/r.width;const T={x:cx-nw/2,y:cy-hh*(fy??.5),w:nw},F0={...MV};
   if(RM.matches){Object.assign(MV,T);mapDraw();return;}const t0=performance.now();const st=t=>{const q=Math.min(1,(t-t0)/320),e=1-Math.pow(1-q,3);MV.x=F0.x+(T.x-F0.x)*e;MV.y=F0.y+(T.y-F0.y)*e;MV.w=F0.w+(T.w-F0.w)*e;mapDraw();if(q<1)requestAnimationFrame(st);};requestAnimationFrame(st);}
 // Tocar una playa: si está lejos o encimada con otras, primero acerca; si se ve bien, abre su pronóstico
+let MAP_PICK=null;
 function tapMk(b){const sv=document.getElementById("msv"),r=sv.getBoundingClientRect(),k=MV.w/r.width,[x,y]=PJ(...MAPPOS[b]);
   const nd=Math.min(...Object.entries(MAPPOS).filter(([o])=>o!==b).map(([,ll])=>{const[q,w]=PJ(...ll);return Math.hypot(q-x,w-y);}));
   const near=nd/k<40,fitW=Math.max(5,nd*r.width/48);
-  if(near&&MV.w>fitW*1.05)mapTo(x,y,fitW);else if(MV.w>=150)mapTo(x,y,70);else openBeach(b,true);}
+  if(near&&MV.w>fitW*1.05)mapTo(x,y,fitW);else if(MV.w>=150)mapTo(x,y,70);else if(MAP_PICK)MAP_PICK(b);else openBeach(b,true);}
 function mapWire(){const sv=document.getElementById("msv");if(!MV.w)mapFit(sv);mapDraw();
   const P=new Map();let moved=0,pinch=null,downMk=null;
   sv.addEventListener("pointerdown",e=>{downMk=e.target.closest(".mk");sv.setPointerCapture(e.pointerId);P.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(P.size===2){const[a,b]=[...P.values()];pinch=Math.hypot(a.x-b.x,a.y-b.y);}});
@@ -653,6 +660,15 @@ function drawWave(ts,dt){
     c.fillStyle="rgba(6,20,31,.65)";c.beginPath();c.roundRect?c.roundRect(W-tw-8,8,tw,24,12):c.rect(W-tw-8,8,tw,24);c.fill();
     c.fillStyle=col;c.textAlign="left";c.fillText(txt+"  "+Math.round(cfg.ws)+" km/h",W-tw+1,24);}
 }
+// Mapa a pantalla completa para elegir una playa (Fotos → "Abrir mapa").
+const mpick=document.createElement("div");mpick.className="simv";mpick.setAttribute("role","dialog");mpick.setAttribute("aria-modal","true");mpick.setAttribute("aria-label","Elegí la playa en el mapa");document.body.appendChild(mpick);
+function closeMapPick(){MAP_PICK=null;mpick.classList.remove("on");mpick.innerHTML="";MV.w=0;}
+function openMapPick(cb){mpick.innerHTML=`<div class="smtop"><button class="ibtn" id="mpX" aria-label="Cerrar">✕</button><b>Tocá la playa</b><span style="width:46px"></span></div>
+  <div class="map" id="map" style="flex:1 1 auto;height:auto;min-height:0;margin:0"><svg id="msv" role="application" aria-label="Mapa de playas"></svg>
+    <div class="mctl"><button id="zin" aria-label="Acercar">+</button><button id="zout" aria-label="Alejar">−</button><button id="zfit" aria-label="Ver toda la costa">⤢</button></div></div>`;
+  mpick.classList.add("on");MAP_PICK=b=>{closeMapPick();cb(b);};mpick.querySelector("#mpX").onclick=closeMapPick;MV.w=0;mapWire();}
+addEventListener("keydown",e=>{if(e.key==="Escape"&&MAP_PICK)closeMapPick();});
+addEventListener("hashchange",()=>{if(MAP_PICK)closeMapPick();});
 const simv=document.createElement("div");simv.className="simv";simv.setAttribute("role","dialog");simv.setAttribute("aria-modal","true");simv.setAttribute("aria-label","Simulación de la ola");document.body.appendChild(simv);
 function simTime(){return S.sel[simB]||[S.day,S.hr];}
 function paintSimInfo(){const F=FC.find(x=>x.b===simB),[d,hr]=simTime(),f=at(F,d*24+hr),ty=waveType(f);
@@ -815,8 +831,11 @@ async function exifTime(file){try{const b=new DataView(await file.slice(0,262144
       const str=String.fromCharCode(...new Uint8Array(b.buffer,t+g32(d+8),19)),mm=str.match(/ (\d\d):(\d\d):\d\d$/);return mm?`${+mm[1]}:${mm[2]}`:null;}
     if((m&0xFF00)!==0xFF00)break;o+=2+len;}}catch(e){}return null;}
 // Versión achicada (con marca de agua) que se muestra en la web; la original no se toca
-async function rendition(file,max,q){const bmp=await createImageBitmap(file);const k=Math.min(1,max/Math.max(bmp.width,bmp.height)),w=Math.round(bmp.width*k),h=Math.round(bmp.height*k);
-  const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.drawImage(bmp,0,0,w,h);bmp.close&&bmp.close();
+// soft = cuánta definición se le saca (se achica a w*soft y se vuelve a agrandar): la previa se ve, pero se nota que no es la original.
+async function rendition(file,max,q,soft=1){const bmp=await createImageBitmap(file);const k=Math.min(1,max/Math.max(bmp.width,bmp.height)),w=Math.round(bmp.width*k),h=Math.round(bmp.height*k);
+  const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.imageSmoothingQuality="high";
+  if(soft<1){const sw=Math.max(1,Math.round(w*soft)),sh=Math.max(1,Math.round(h*soft)),t=document.createElement("canvas");t.width=sw;t.height=sh;const tx=t.getContext("2d");tx.imageSmoothingQuality="high";tx.drawImage(bmp,0,0,sw,sh);x.drawImage(t,0,0,w,h);}
+  else x.drawImage(bmp,0,0,w,h);bmp.close&&bmp.close();
   const fs=Math.max(14,Math.round(w/20));x.save();x.globalAlpha=.4;x.fillStyle="#fff";x.font=`800 ${fs}px Outfit, Arial, sans-serif`;x.translate(w/2,h/2);x.rotate(-.35);
   const sx=fs*6,sy=fs*3.2,R=Math.hypot(w,h);for(let yy=-R,r=0;yy<R;yy+=sy,r++)for(let xx=-R;xx<R;xx+=sx)x.fillText("olas.uy",xx+(r%2)*sx/2,yy);x.restore();
   return await new Promise(r=>c.toBlob(r,"image/jpeg",q));}
@@ -832,7 +851,7 @@ async function publishSession(){UP.busy=true;UP.done=0;UP.total=UP.files.length;
       const meta=await Promise.all(chunk.map(async f=>({ext:EXT_OF[f.type]||"jpg",taken_at:inSes(await exifTime(f))||inSes(hm(f.lastModified))||UP.from.replace(/^0/,"")})));
       const{data:urls,error:e2}=await SB.functions.invoke("r2-upload",{body:{session_id:ses.id,files:meta}});if(e2)throw new Error("No se pudo preparar la subida: "+(await fnMsg(e2)));
       for(let j=0;j<chunk.length;j++){const f=chunk[j],u=urls[j];
-        const pv=await rendition(f,1600,.82),th=await rendition(f,520,.72);
+        const pv=await rendition(f,1600,.82,.4),th=await rendition(f,520,.72,.6);
         await put(u.original,f,f.type||"image/jpeg");await put(u.preview,pv,"image/jpeg");await put(u.thumb,th,"image/jpeg");
         const{error:e3}=await SB.from("photos").update({ready:true}).eq("id",u.id);if(e3)throw e3;UP.done++;paintProg();}}
     const{error:e4}=await SB.from("sessions").update({published:true}).eq("id",ses.id);if(e4)throw e4;
@@ -943,15 +962,21 @@ V.fotos=()=>{if(!isReal())return fotosDemo();const rec=S.fk<0,day=rec?null:iso(d
   const favH=favL===null?"":`<h2 style="margin:4px 0 12px">♥ Tus playas</h2>${favL===undefined?skelGrid(2):favL&&favL.length?grid(favL):`<p class="emptyh" style="margin-bottom:8px">Todavía no hay fotos de ${fav.join(", ")} esta semana.</p>`}`;
   const rest=list&&favL?list.filter(x=>!favL.some(y=>y.id===x.id)):list;
   const body=list===undefined?skelGrid(3):rest&&rest.length?grid(rest):list&&list.length?"":skelGrid(3)+`<p class="emptyh">Todavía no hay fotos de ${S.beach||"ninguna playa"} ${rec?"esta semana":dayName(S.fk).toLowerCase()}.</p>`;
-  const order=["",...fav,...BEACHES.filter(b=>!fav.includes(b))];
+  const vis=BEACHES.filter(b=>!fav.includes(b)&&(VIEWS[b]||0)>0).sort((a,b)=>VIEWS[b]-VIEWS[a]),order=["",...fav,...vis,...BEACHES.filter(b=>!fav.includes(b)&&!vis.includes(b))];
   return{url:`olas.uy/fotos/${S.beach?slug(S.beach):"uruguay"}${day?"/"+day:""}`,title:"Fotos de surf",sec:"fotos",html:`
   <p class="ask">¿Dónde surfeaste?</p>
-  <div class="rail" id="beachR">${order.map(b=>`<button class="bchip" data-b="${b}" aria-pressed="${b===S.beach}"><i>${b?(FAVS.has(b)?"♥":b[0]):"🇺🇾"}</i>${b||"Todas"}</button>`).join("")}</div>
+  <div class="frow"><button class="btn soft" id="pickMap">🗺️ Abrir mapa</button><label class="fsearch"><span aria-hidden="true">🔍</span><input type="search" id="bQ" placeholder="Buscar playa" autocomplete="off" aria-label="Buscar playa"></label></div>
+  <div class="rail" id="beachR">${order.map(b=>`<button class="bchip" data-b="${b}" data-n="${b?norm(b):""}" aria-pressed="${b===S.beach}"><i>${b?(FAVS.has(b)?"♥":b[0]):"🇺🇾"}</i>${b||"Todas"}</button>`).join("")}</div>
+  <p class="emptyh" id="bQnone" hidden>No encontramos esa playa.</p>
   <p class="ask" style="margin-top:18px">¿Cuándo?</p>
   <div class="rail" id="dayR"><button class="chip" data-k="-1" aria-pressed="${rec}">Recientes</button>${[0,1,2,3,4,5,6].map(k=>`<button class="chip" data-k="${k}" aria-pressed="${k===S.fk}">${dayName(k)}</button>`).join("")}</div>
   <section style="margin-top:22px">${favH}${favH&&body?`<h2 style="margin:26px 0 12px">${S.beach?"":"Recientes"}</h2>`:""}${body}</section>`,
   after(){document.getElementById("beachR").onclick=e=>{const b=e.target.closest("[data-b]");if(b){S.beach=b.dataset.b;render();}};
     document.getElementById("dayR").onclick=e=>{const b=e.target.closest("[data-k]");if(b){S.fk=+b.dataset.k;render();}};
+    document.getElementById("pickMap").onclick=()=>openMapPick(b=>{S.beach=b;render();});
+    const q=document.getElementById("bQ");q.oninput=()=>{const t=norm(q.value.trim());let n=0;
+      document.querySelectorAll("#beachR .bchip").forEach(c=>{const ok=!t||(c.dataset.n&&c.dataset.n.includes(t));c.hidden=!ok;if(ok&&c.dataset.n)n++;});
+      document.getElementById("bQnone").hidden=!t||n>0;document.getElementById("beachR").scrollLeft=0;};
     const sel=document.querySelector('#beachR [aria-pressed="true"]');sel&&sel.scrollIntoView({inline:"center",block:"nearest"});}};};
 
 V.sesion=()=>{if(!isReal()||!S.arg)return sesionDemo();const x=need("s:"+S.arg,()=>fetchSession(S.arg));
