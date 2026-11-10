@@ -1088,7 +1088,6 @@ function openPayInfo(price){const p=price||UP.price||300,ol=p*PLAT_FEE,mp=p*MP_F
       <div class="ib"><b>⏱ ¿Cuándo la podés usar?</b><p>Depende del <b>plazo de cobro</b> que tengas en Mercado Pago: si la querés al instante, la comisión es más alta; si elegís esperar unos días, es más baja. Lo ves y lo cambiás en tu cuenta de Mercado Pago (costos y plazos).</p></div>
       <div class="ib"><b>📦 Packs</b><p>Las comisiones se calculan sobre lo que pagó el surfista. Un pack nunca puede costar más que las fotos sueltas.</p></div>
       <div class="ib"><b>📩 El comprador</b><p>Recibe la foto original sin marca de agua y puede descargarla durante 30 días. Si Mercado Pago devuelve un pago, la descarga se corta.</p></div>
-      <div class="ib"><b>🧾 Impuestos</b><p>Si vendés seguido, consultá con un contador cómo facturar.</p></div>
     </div><button class="btn block" id="piOk" style="margin-top:14px">Entendido</button>`;
   sheet.classList.add("on");scrim.classList.add("on");document.getElementById("piOk").onclick=closeSheet;}
 document.addEventListener("click",e=>{if(e.target.closest("[data-payinfo]")){e.preventDefault();openPayInfo();}});
