@@ -55,6 +55,8 @@ nav.dock{position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:cal
 nav.dock a{display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap;padding:8px 14px 7px;min-width:68px;border-radius:24px;text-decoration:none;color:#0b5f70;font-weight:700;font-size:12px;line-height:1;transition:background .25s,color .25s}
 nav.dock a svg{width:22px;height:22px;flex:0 0 auto}
 nav.dock a.on{background:var(--ink);color:var(--white)}
+.wash{position:fixed;inset:0;width:100%;height:100%;z-index:8;pointer-events:none;display:none}
+.wash.on{display:block;pointer-events:auto}
 @media (max-width:420px){nav.dock a{padding:8px 9px 7px;min-width:0;flex:1 1 0}nav.dock{width:calc(100% - 24px)}}
 
 main{padding-bottom:120px;min-height:70vh}
@@ -499,8 +501,40 @@ function render(){if(!FC||!FC.length)return; // todavía cargando el pronóstico
   const[r,arg]=(location.hash||"#inicio").slice(1).split("=");S.arg=decodeURIComponent(arg||"");const v=V[r]?r:"inicio";const o=V[v]();
   app.innerHTML=o.html;document.getElementById("url").textContent=o.url;document.title=(o.title?o.title+" · ":"")+"Olas UY";
   document.querySelectorAll(".dock a").forEach(a=>a.classList.toggle("on",a.dataset.sec===(o.sec||v)));o.after&&o.after();if(typeof paintCart==="function")paintCart();}
-function show(){if(vw.classList.contains("on"))closeViewer();if(typeof closeSim==="function")closeSim();if(typeof bs!=="undefined"&&bs.classList.contains("on")){bs.classList.remove("on");scrim.classList.remove("on");bsBeach=null;}if(document.startViewTransition&&!RM.matches)document.startViewTransition(()=>{render();scrollTo(0,0);});else{render();scrollTo(0,0);}}
+function show(){if(vw.classList.contains("on"))closeViewer();if(typeof closeSim==="function")closeSim();if(typeof bs!=="undefined"&&bs.classList.contains("on")){bs.classList.remove("on");scrim.classList.remove("on");bsBeach=null;}if(document.startViewTransition&&!RM.matches&&!WASH.on)document.startViewTransition(()=>{render();scrollTo(0,0);});else{render();scrollTo(0,0);}}
 addEventListener("hashchange",show);
+// ============ Ola al cambiar de sección (barra de abajo) ============
+// Llega una ola desde arriba, tapa la pantalla, se cambia la sección y al retirarse queda la nueva.
+// Dibujada en canvas (agua turquesa + borde de espuma con burbujas). Con "reducir movimiento" no se usa.
+const WASH={on:false,cv:null};
+function wash(swap){const cv=WASH.cv||(WASH.cv=Object.assign(document.createElement("canvas"),{className:"wash"}));if(!cv.isConnected)document.body.appendChild(cv);
+  const dpr=Math.min(2,devicePixelRatio||1),W=innerWidth,H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);
+  const bub=Array.from({length:Math.round(W/3)},()=>({x:Math.random()*W,d:Math.random()**1.6*46,r:.8+Math.random()*3.2,a:.35+Math.random()*.6}));
+  const edge=(x,y0,t)=>y0+14*Math.sin(x*.011+t*1.7)+8*Math.sin(x*.029-t*2.6)+4*Math.sin(x*.067+t*4.1);
+  const draw=(p,t)=>{c.clearRect(0,0,W,H);const y0=-90+p*(H+180);if(y0<-80)return;
+    // agua
+    const g=c.createLinearGradient(0,y0-H,0,y0);g.addColorStop(0,"rgba(12,138,162,.97)");g.addColorStop(.75,"rgba(42,182,196,.95)");g.addColorStop(1,"rgba(128,220,214,.88)");
+    c.fillStyle=g;c.beginPath();c.moveTo(0,0);for(let x=0;x<=W;x+=8)c.lineTo(x,edge(x,y0,t));c.lineTo(W,0);c.closePath();c.fill();
+    // arena mojada (sombra suave debajo del borde)
+    const sh=c.createLinearGradient(0,y0,0,y0+40);sh.addColorStop(0,"rgba(120,96,60,.16)");sh.addColorStop(1,"rgba(120,96,60,0)");c.fillStyle=sh;
+    c.beginPath();for(let x=0;x<=W;x+=8)c.lineTo(x,edge(x,y0,t));c.lineTo(W,y0+44);c.lineTo(0,y0+44);c.closePath();c.fill();
+    // espuma: borde blanco y encaje
+    const line=(off,w,a,dash)=>{c.setLineDash(dash||[]);c.strokeStyle=`rgba(255,255,255,${a})`;c.lineWidth=w;c.lineCap="round";c.beginPath();for(let x=-8;x<=W+8;x+=6)c.lineTo(x,edge(x,y0,t)-off+2*Math.sin(x*.13+t*6));c.stroke();};
+    line(0,9,.95);line(9,4,.55,[3,7]);line(20,2.5,.35,[2,9]);line(34,2,.22,[1,11]);c.setLineDash([]);
+    bub.forEach(b=>{c.fillStyle=`rgba(255,255,255,${b.a})`;c.beginPath();c.arc(b.x,edge(b.x,y0,t)-b.d-3,b.r,0,7);c.fill();});};
+  const ease=x=>x<.5?2*x*x:1-(-2*x+2)**2/2,IN=380,OUT=620,t0=performance.now();let swapped=false;
+  WASH.on=true;cv.classList.add("on");
+  const tick=now=>{const e=now-t0,t=e/1000;
+    if(e<IN)draw(ease(e/IN),t);
+    else if(!swapped){swapped=true;draw(1,t);swap();}
+    if(e>=IN+90&&e<IN+90+OUT)draw(1-ease((e-IN-90)/OUT),t);
+    if(e>=IN+90+OUT){c.clearRect(0,0,W,H);cv.classList.remove("on");WASH.on=false;return;}
+    requestAnimationFrame(tick);};
+  requestAnimationFrame(tick);}
+document.querySelector("nav.dock").addEventListener("click",e=>{const a=e.target.closest("a[href^='#']");if(!a)return;const to=a.getAttribute("href");
+  if(RM.matches||location.hash===to||(!location.hash&&to==="#inicio"))return;e.preventDefault();
+  document.querySelectorAll(".dock a").forEach(x=>x.classList.toggle("on",x===a));
+  if(WASH.on){location.hash=to;return;}wash(()=>{location.hash=to;});});
 function go(r){if(location.hash==="#"+r)show();else location.hash=r;}
 // Tocar una playa en el inicio: va al pronóstico y abre esa playa.
 document.addEventListener("click",e=>{const el=e.target.closest("[data-beach-go]");if(el){S.goBeach=el.dataset.beachGo;S.sel={};S.day=0;S.hr=H0;}});
