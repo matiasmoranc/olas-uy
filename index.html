@@ -51,8 +51,8 @@ header.top .wrap{display:flex;align-items:center;justify-content:space-between;g
 .url{font:500 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mut);background:var(--white);border:1px solid var(--line);border-radius:999px;padding:6px 10px;max-width:55vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Dock flotante */
-nav.dock{position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:4px;padding:6px;background:rgba(255,255,255,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:999px;box-shadow:var(--shadow)}
-nav.dock a{display:flex;align-items:center;gap:7px;white-space:nowrap;padding:11px 16px;border-radius:999px;text-decoration:none;color:var(--mut);font-weight:700;font-size:15px;transition:background .25s,color .25s}
+nav.dock{position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:4px;padding:6px;background:linear-gradient(135deg,rgba(19,168,194,.30),rgba(60,201,184,.30));backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);border:1px solid rgba(19,168,194,.45);border-radius:999px;box-shadow:0 10px 30px rgba(11,127,149,.28)}
+nav.dock a{display:flex;align-items:center;gap:7px;white-space:nowrap;padding:11px 16px;border-radius:999px;text-decoration:none;color:#0b5f70;font-weight:700;font-size:15px;transition:background .25s,color .25s}
 nav.dock a svg{width:22px;height:22px;flex:0 0 auto}
 nav.dock a.on{background:var(--ink);color:var(--white)}
 @media (max-width:420px){nav.dock a{padding:11px 13px;font-size:14px;gap:6px}}
@@ -73,7 +73,7 @@ section{margin-top:44px}
 .pill{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px;color:var(--ink);background:var(--c,var(--mist))}
 
 /* Carrusel horizontal */
-.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px max(16px,env(safe-area-inset-left,0px)) 14px;margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));scrollbar-width:none}
+.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:max(16px,env(safe-area-inset-left,0px));padding:4px max(16px,env(safe-area-inset-left,0px)) 14px;margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));scrollbar-width:none}
 .rail::-webkit-scrollbar{display:none}
 .rail>*{scroll-snap-align:start;flex:0 0 auto}
 
@@ -103,7 +103,7 @@ section{margin-top:44px}
 /* ===== Olas ===== */
 .zones{margin-bottom:14px}
 .waves{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-.wv{background:var(--white);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;display:flex;flex-direction:column;gap:12px;text-align:left;width:100%;transition:box-shadow .2s;cursor:pointer}
+.wv{background:var(--white);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;display:flex;flex-direction:column;gap:12px;text-align:left;width:100%;transition:box-shadow .2s}
 .wv:hover{box-shadow:var(--shadow)}
 .wv .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .wv .top b{font-size:19px;display:block;margin-bottom:6px}
@@ -355,7 +355,7 @@ const CK="olasuy-fc";
 const saveCache=D=>{try{localStorage.setItem(CK,JSON.stringify(D));}catch(e){}};
 const loadCache=()=>{try{return JSON.parse(localStorage.getItem(CK)||"null");}catch(e){return null;}};
 const hhmm=ms=>new Date(ms).toLocaleTimeString("es-UY",{hour:"2-digit",minute:"2-digit",hourCycle:"h23",timeZone:TZ});
-const srcTxt=()=>SRC.kind==="live"||SRC.kind==="cache"?`Open-Meteo · ${hhmm(SRC.at)}`:SRC.kind==="offline"?`Sin conexión · datos de las ${hhmm(SRC.at)}`:SRC.kind==="sample"?"Sin conexión · datos de EJEMPLO":"";
+const srcTxt=()=>SRC.kind==="offline"?`Sin conexión · datos de las ${hhmm(SRC.at)}`:SRC.kind==="sample"?"Sin conexión · datos de EJEMPLO":"";
 // Datos de ejemplo: solo si nunca se pudo cargar el pronóstico real
 const sampleFC=()=>BEACHES.map((b,k)=>{const r=rng(k+3),open=ZONE(b)==="Rocha"?1.25:ZONE(b)==="Punta del Este"?1:ZONE(b)==="Canelones"?.55:.3;const p0=6+r()*7,w0=5+r()*14;
   const hours=Array.from({length:168},(_,i)=>{const clk=i%24,h=Math.max(.1,open*(1+.45*Math.sin(i/14+k)+.2*Math.sin(i/5+k)+.08*r())),per=Math.round(p0+2*Math.sin(i/20+k));
@@ -474,6 +474,10 @@ function sea(){const cv=document.getElementById("sea");if(!cv)return;cancelAnima
   draw(0);addEventListener("resize",()=>{[W,H]=fit();},{once:true});}
 
 // ============ Pantallas ============
+// "Ahora" en el inicio: primero tus favoritas, después las que más abrís, después el resto por puntaje.
+function nowOrder(){const sc=(a,b)=>at(b,H0).sc-at(a,H0).sc,fav=FC.filter(F=>FAVS.has(F.b)).sort(sc),
+  vis=FC.filter(F=>!FAVS.has(F.b)&&(VIEWS[F.b]||0)>0).sort((a,b)=>VIEWS[b.b]-VIEWS[a.b]||sc(a,b)),
+  rest=FC.filter(F=>!fav.includes(F)&&!vis.includes(F)).sort(sc);return [...fav,...vis,...rest].slice(0,Math.max(10,fav.length+vis.length));}
 V.inicio=()=>{const best0=[...FC].sort((a,b)=>at(b,H0).sc-at(a,H0).sc)[0],bo=bestOf(best0,0),best={...at(best0,H0),b:best0.b,best:`${bo.clk}–${bo.clk+3} h`};return{url:"olas.uy",sec:"",html:`
   <div class="hero">
     <canvas id="sea" aria-hidden="true"></canvas>
@@ -484,13 +488,13 @@ V.inicio=()=>{const best0=[...FC].sort((a,b)=>at(b,H0).sc-at(a,H0).sc)[0],bo=bes
     </div>
   </div>
   <section><div class="sh"><h2>Ahora</h2><a href="#olas">Todas →</a></div>
-    <div class="rail">${[...FC].sort((a,b)=>at(b,H0).sc-at(a,H0).sc).slice(0,10).map(F=>{const f=at(F,H0);return `<a class="spot" href="#olas"><span class="top"><span style="font-weight:700;line-height:1.15">${F.b}</span><span class="h tab" style="font-size:30px;white-space:nowrap">${m1(f.h)}<small> m</small></span></span><span class="sc tab" style="--c:${GR[f.g][1]}">⭐ ${m1(f.sc)}<small>/10</small></span><span class="mini tab"><span>${clock}${f.per} s</span><span style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}</span></span></a>`;}).join("")}</div></section>
+    <div class="rail">${nowOrder().map(F=>{const f=at(F,H0);return `<a class="spot" href="#olas"><span class="top"><span style="font-weight:700;line-height:1.15">${FAVS.has(F.b)?'<span style="color:var(--g-malo)">♥</span> ':""}${F.b}</span><span class="h tab" style="font-size:30px;white-space:nowrap">${m1(f.h)}<small> m</small></span></span><span class="sc tab" style="--c:${GR[f.g][1]}">⭐ ${m1(f.sc)}<small>/10</small></span><span class="mini tab"><span>${clock}${f.per} s</span><span style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}</span></span></a>`;}).join("")}</div></section>
   <section><div class="sh"><h2>Recién subidas${isReal()?"":` <span class="pill" style="vertical-align:middle;font-family:var(--body);letter-spacing:0">Ejemplo</span>`}</h2><a href="#fotos">Buscar →</a></div>
     ${isReal()?recentReal():`<div class="rail">${SESSIONS.map(s=>`<button class="shot" data-go="sesion" data-sess="${s.id}" aria-label="${s.beach}, ${dayName(s.k)}"><img src="${photo(s.seed*100+3,true)}" alt="" loading="lazy"><div class="wm"></div><span class="cap"><span>${s.beach}<br><small>${dayName(s.k)} · ${s.from}</small></span><small>${s.n} 📷</small></span></button>`).join("")}</div>`}</section>
   <section class="sell"><div><h2>¿Sacás fotos de surf?</h2><p class="mut" style="margin-top:8px">Subilas, poné tu precio y cobrá con Mercado Pago.</p></div><a class="btn" href="#vender">Empezar a vender</a></section>`,after:sea};};
 
-function waveCard(F,inSheet){const own=S.sel[F.b],[d,hr]=own||[S.day,S.hr],f=at(F,d*24+hr),open=inSheet||S.open.has(F.b),bo=bestOf(F,d),fv=FAVS.has(F.b);
-  return `<div class="wv${open?" open":""}" data-b="${F.b}" ${inSheet?"":`tabindex="0" role="button" aria-expanded="${open}"`} aria-label="${F.b}, ${clkLbl(d,hr)}: ${m1(f.h)} metros, puntaje ${m1(f.sc)} de 10, ${GR[f.g][0]}, período ${f.per} segundos, viento ${WK[f.wk].t.toLowerCase()} ${f.ws} km/h">
+function waveCard(F,inSheet){const own=S.sel[F.b],[d,hr]=own||[S.day,S.hr],f=at(F,d*24+hr),open=true,bo=bestOf(F,d),fv=FAVS.has(F.b);
+  return `<div class="wv${open?" open":""}" data-b="${F.b}" aria-label="${F.b}, ${clkLbl(d,hr)}: ${m1(f.h)} metros, puntaje ${m1(f.sc)} de 10, ${GR[f.g][0]}, período ${f.per} segundos, viento ${WK[f.wk].t.toLowerCase()} ${f.ws} km/h">
     <span class="top"><span><b><button class="fav" data-fav="${F.b}" aria-pressed="${fv}" aria-label="${fv?"Quitar de":"Agregar a"} tus playas">${fv?"♥":"♡"}</button>${F.b}</b><span class="row" style="gap:6px"><span class="pill" style="--c:${GR[f.g][1]}">${GR[f.g][0]}</span>${own?`<button class="tpill" data-reset="${F.b}" aria-label="Volver a la hora general">🕐 ${clkLbl(d,hr)} ✕</button>`:""}</span></span><span class="hbig tab">${m1(f.h)}<small> m</small></span></span>
     <span class="facts tab"><span class="fact score" style="--c:${GR[f.g][1]}">⭐ ${m1(f.sc)}<small>/10</small></span><span class="fact">${clock}${f.per}<small>s</small></span><span class="fact" style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}<small>km/h</small></span></span>
     <span class="hours">${spark(F,d,hr)}<span class="hl" aria-hidden="true">${[0,6,12,18].map(k=>`<span style="left:${k/24*100}%">${k} h</span>`).join("")}</span></span>
@@ -683,8 +687,7 @@ function cardEvents(root){
     const rs=e.target.closest("[data-reset]");if(rs){e.stopPropagation();delete S.sel[rs.dataset.reset];paintBeach(rs.dataset.reset);return;}
     const dd=e.target.closest("[data-day]");if(dd){const card=dd.closest(".wv"),b=card.dataset.b,k=+dd.dataset.day,F=FC.find(x=>x.b===b);S.sel[b]=[k,k===0?Math.max(H0,bestOf(F,0).clk):bestOf(F,k).clk];paintBeach(b);return;}
     if(e.target.closest(".sp")||e.target.closest("[data-go]"))return;const w=e.target.closest(".wv");if(!w||root===bs)return;
-    const b=w.dataset.b;if(!S.open.has(b))seen(b);S.open.has(b)?S.open.delete(b):S.open.add(b);document.querySelectorAll(`#app .wv[data-b="${b}"]`).forEach(x=>{x.classList.toggle("open",S.open.has(b));x.setAttribute("aria-expanded",S.open.has(b));});});
-  root.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){const w=e.target.closest(".wv");if(w&&e.target===w){e.preventDefault();w.click();}}});}
+    if(!w.dataset.seen){w.dataset.seen=1;seen(w.dataset.b);}});}
 addEventListener("pointerup",()=>{dragBars=false;});
 cardEvents(bs);
 
