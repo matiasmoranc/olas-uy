@@ -231,7 +231,10 @@ section{margin-top:44px}
 .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin-top:14px}
 .thumbs div{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--mist)}
 .thumbs img{width:100%;height:100%;object-fit:cover;display:block}
-.form2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.thumbs .tx{position:absolute;top:5px;right:5px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(12,42,56,.7);color:#fff;font-weight:800;font-size:13px;display:grid;place-items:center}
+.form2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:12px}
+.form2 label{display:flex;flex-direction:column;gap:6px;min-width:0}
+.form2 .inp{min-width:0;width:100%;max-width:100%;-webkit-appearance:none;appearance:none;text-align:center;font-weight:700;color:var(--ink);min-height:50px}
 .prog{height:10px;border-radius:10px;background:var(--line);overflow:hidden;margin:16px 0 8px}
 .prog i{display:block;height:100%;width:0;background:var(--aqua);border-radius:10px;transition:width .3s}
 .fld{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:14px;color:var(--mut);margin-top:12px}
@@ -260,11 +263,12 @@ section{margin-top:44px}
 .save{color:var(--g-bueno);font-weight:800}
 .ibtn.sm{width:36px;height:36px;font-size:15px}
 .packs-ed{border-top:1px solid var(--line);margin-top:16px;padding-top:14px;display:flex;flex-direction:column;gap:10px}
-.pkrow{display:flex;align-items:center;gap:8px}
-.pkrow .inp{padding:10px 4px;width:62px;text-align:center;font-weight:700}
-.pkrow span{display:flex;align-items:center;gap:5px;font-weight:600;white-space:nowrap}
-.pkx{margin-left:auto;font-weight:800;color:var(--g-bueno);font-size:14px;white-space:nowrap}
-.pkx.bad{color:var(--coral)}
+.pkrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--foam);border-radius:18px;padding:8px}
+.stp{display:flex;align-items:center;justify-content:space-between;background:var(--white);border:1px solid var(--line);border-radius:999px;padding:3px;min-width:0}
+.stp button{width:34px;height:34px;border-radius:50%;border:0;background:var(--mist);font:800 19px/1 var(--body);color:var(--ink);flex:0 0 auto;touch-action:manipulation}
+.stp button:disabled{opacity:.3}
+.stp b{font-weight:800;font-size:15px;white-space:nowrap;padding:0 4px}
+.pkx{grid-column:1/-1;font-weight:800;color:var(--g-bueno);font-size:13px;padding:0 6px}
 .pk-add{display:flex;gap:8px;flex-wrap:wrap}
 .pk-add .chip{padding:8px 12px;font-size:14px}
 .seg{display:flex;background:var(--mist);border-radius:999px;padding:4px;margin:0 auto 16px;max-width:640px}
@@ -456,7 +460,8 @@ const today=(()=>{const d=nowUY();d.setHours(0,0,0,0);return d;})();
 const DIAS=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const dayAt=k=>{const d=new Date(today);d.setDate(d.getDate()-k);return d;};
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-const dayName=k=>k===0?"Hoy":k===1?"Ayer":`${DIAS[dayAt(k).getDay()]} ${dayAt(k).getDate()}`;
+const DAYS30=[...Array(30).keys()];
+const dayName=k=>{const d=dayAt(k);return k===0?"Hoy":k===1?"Ayer":k<7?`${DIAS[d.getDay()]} ${d.getDate()}`:`${DIAS[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;};
 const money=n=>"$ "+Math.round(n).toLocaleString("es-UY");
 const money2=n=>"$ "+n.toLocaleString("es-UY",{minimumFractionDigits:2,maximumFractionDigits:2});
 const m1=n=>n.toFixed(1).replace(".",",");
@@ -990,12 +995,13 @@ function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender
   const st=UP.step,steps=`<div class="steps" aria-hidden="true">${[1,2,3].map(i=>`<span class="${i<=st?"on":""}"></span>`).join("")}</div>`;let body="";
   if(st===1)body=`<h2>Subí tus fotos</h2>
     <label class="drop" id="drop" for="uF" style="margin-top:14px"><span class="big">⬆︎</span><b>Arrastralas acá o tocá para elegir</b><span class="mut" style="font-size:14px">JPG en máxima calidad · la marca de agua se pone sola</span><input id="uF" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
-    <div class="thumbs">${UP.urls.slice(0,24).map(u=>`<div><img src="${u}" alt=""><div class="wm"></div></div>`).join("")}</div>
+    <div class="thumbs" id="uTh">${UP.urls.map((u,i)=>`<div><img src="${u}" alt="" loading="lazy"><button class="tx" data-rm="${i}" aria-label="Sacar esta foto">✕</button></div>`).join("")}</div>
     ${UP.files.length?`<p class="mut" style="font-size:14px;margin-top:8px">${fotos(UP.files.length)} elegida${UP.files.length===1?"":"s"} · <button class="link" id="clr">Sacar todas</button></p>`:""}
     <button class="btn block" id="next" style="margin-top:16px" ${UP.files.length?"":"disabled"}>${UP.files.length?`Seguir con ${fotos(UP.files.length)}`:"Elegí tus fotos"}</button>`;
   if(st===2)body=`<h2>¿Dónde y cuándo?</h2>
-    <div class="rail" id="ub" style="margin-top:14px">${BEACHES.map(b=>`<button class="chip" data-b="${b}" aria-pressed="${b===UP.beach}">${b}</button>`).join("")}</div>
-    <div class="rail" id="uk">${[0,1,2,3,4,5,6].map(k=>`<button class="chip" data-k="${k}" aria-pressed="${k===UP.k}">${dayName(k)}</button>`).join("")}</div>
+    <label class="fsearch" style="margin-top:14px"><span aria-hidden="true">🔍</span><input type="search" id="ubQ" placeholder="Buscar playa" autocomplete="off" aria-label="Buscar playa"></label>
+    <div class="rail" id="ub" style="margin-top:10px">${[UP.beach,...BEACHES.filter(b=>b!==UP.beach)].map(b=>`<button class="chip" data-b="${b}" data-n="${norm(b)}" aria-pressed="${b===UP.beach}">${b}</button>`).join("")}</div>
+    <div class="rail" id="uk">${DAYS30.map(k=>`<button class="chip" data-k="${k}" aria-pressed="${k===UP.k}">${dayName(k)}</button>`).join("")}</div>
     <div class="form2"><label for="uA" class="mut" style="font-weight:600">Desde<input class="inp" id="uA" type="time" value="${UP.from}"></label><label for="uB" class="mut" style="font-weight:600">Hasta<input class="inp" id="uB" type="time" value="${UP.to}"></label></div>
     <div class="row" style="margin-top:16px;flex-wrap:nowrap"><button class="btn soft" id="back">←</button><button class="btn block" id="next">Seguir</button></div>`;
   if(st===3)body=`<h2>Tu precio por foto</h2>
@@ -1011,9 +1017,11 @@ function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender
       ["dragenter","dragover"].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.classList.add("over");}));
       ["dragleave","drop"].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.classList.remove("over");}));d.addEventListener("drop",e=>add(e.dataTransfer.files));}
     if($("clr"))$("clr").onclick=()=>{UP.urls.forEach(URL.revokeObjectURL);UP.files=[];UP.urls=[];render();};
+    if($("uTh"))$("uTh").onclick=e=>{const b=e.target.closest("[data-rm]");if(!b)return;const i=+b.dataset.rm;URL.revokeObjectURL(UP.urls[i]);UP.files.splice(i,1);UP.urls.splice(i,1);render();};
     if($("next"))$("next").onclick=()=>{if(st===2){UP.from=$("uA").value||UP.from;UP.to=$("uB").value||UP.to;if(UP.to<=UP.from){toast("La hora de fin tiene que ser después del inicio");return;}}UP.step++;render();};
     if($("back"))$("back").onclick=()=>{if(st===2){UP.from=$("uA").value||UP.from;UP.to=$("uB").value||UP.to;}UP.step--;render();};
     if($("ub")){$("ub").onclick=e=>{const b=e.target.closest("[data-b]");if(b){UP.beach=b.dataset.b;$("ub").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c===b));}};
+      $("ubQ").oninput=()=>{const t=norm($("ubQ").value.trim());$("ub").querySelectorAll(".chip").forEach(c=>c.hidden=!!t&&!c.dataset.n.includes(t));$("ub").scrollLeft=0;};
       $("uk").onclick=e=>{const b=e.target.closest("[data-k]");if(b){UP.k=+b.dataset.k;$("uk").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c===b));}};
       const sel=$("ub").querySelector('[aria-pressed="true"]');sel&&sel.scrollIntoView({inline:"center",block:"nearest"});}
     const setP=v=>{UP.price=Math.max(50,Math.min(5000,v));$("pv").textContent=money(UP.price);$("kp").textContent=money2(UP.price*(1-PLAT_FEE));mountPacks($("pkE"),UP,()=>UP.price,UP.files.length);};
@@ -1036,15 +1044,24 @@ const packHint=(k,packs)=>{const nx=packs.find(p=>p.n>k);return nx&&nx.n-k<=2?`S
 const packsBanner=(packs,unit)=>packs.length?`<div class="packs" aria-label="Packs con descuento">${packs.map(p=>`<span>📦 ${p.n} fotos ${money(p.price)}${p.price<p.n*unit?`<s>${money(p.n*unit)}</s>`:""}</span>`).join("")}</div>`:"";
 const r10=v=>Math.max(50,Math.round(v/10)*10);
 // Editor de packs (asistente de subida y "Editar sesión"). st.packs se edita en el lugar.
-function mountPacks(el,st,unit,nAll){if(!el)return;const u=unit();
-  const lbl=p=>p.price>p.n*u?`Máx ${money(p.n*u)}`:p.price<50?"Mín $ 50":p.n*u>p.price?`−${Math.round((1-p.price/(p.n*u))*100)}%`:"sin descuento";
-  const sug=[3,5,10,...(nAll>=4?[nAll]:[])].filter((n,i,a)=>a.indexOf(n)===i&&(!nAll||n<=nAll)&&!st.packs.some(p=>p.n===n));
+function mountPacks(el,st,unit,nAll){if(!el)return;const u=unit(),top=Math.min(300,nAll||300);
+  st.packs.forEach(p=>{p.price=Math.max(50,Math.min(p.price,p.n*u));});   // si cambia el precio por foto, el pack nunca queda más caro
+  const sug=[3,5,10,...(nAll>=4?[nAll]:[])].filter((n,i,a)=>a.indexOf(n)===i&&n<=top&&!st.packs.some(p=>p.n===n));
   el.innerHTML=`<p><b>Packs con descuento</b> <span class="mut">(opcional)</span></p>
-    ${st.packs.map((p,i)=>`<div class="pkrow" data-i="${i}"><span><input class="inp" type="number" inputmode="numeric" min="2" max="300" value="${p.n}" data-f="n" aria-label="Cantidad de fotos del pack">fotos</span><span>por $<input class="inp" type="number" inputmode="numeric" min="50" step="10" value="${p.price}" data-f="price" aria-label="Precio del pack"></span><span class="pkx${p.price>p.n*u||p.price<50?" bad":""}">${lbl(p)}</span><button class="ibtn sm" data-del="${i}" aria-label="Sacar este pack">✕</button></div>`).join("")}
-    ${st.packs.length<6&&sug.length?`<div class="pk-add">${sug.map(n=>`<button class="chip" data-add="${n}">＋ ${n===nAll&&nAll>10?`Todas (${n})`:`${n} fotos`}</button>`).join("")}</div>`:""}
-`;
-  el.oninput=e=>{const f=e.target.dataset.f;if(!f)return;const row=e.target.closest(".pkrow"),p=st.packs[+row.dataset.i];p[f]=Math.trunc(+e.target.value||0);
-    const x=row.querySelector(".pkx");x.textContent=lbl(p);x.classList.toggle("bad",p.price>p.n*u||p.price<50);};
+    ${st.packs.map((p,i)=>{const mx=p.n*u,off=Math.round((1-p.price/mx)*100);return `<div class="pkrow" data-i="${i}">
+      <div class="stp"><button data-s="n" data-d="-1" aria-label="Menos fotos" ${p.n<=2?"disabled":""}>−</button><b class="tab">${p.n} fotos</b><button data-s="n" data-d="1" aria-label="Más fotos" ${p.n>=top?"disabled":""}>+</button></div>
+      <div class="stp"><button data-s="p" data-d="-10" aria-label="Bajar precio del pack" ${p.price<=50?"disabled":""}>−</button><b class="tab">${money(p.price)}</b><button data-s="p" data-d="10" aria-label="Subir precio del pack" ${p.price>=mx?"disabled":""}>+</button></div>
+      <button class="ibtn sm" data-del="${i}" aria-label="Sacar este pack">✕</button>
+      <span class="pkx">${off>0?`−${off}%`:"sin descuento"} <span class="mut">· máx ${money(mx)}</span></span></div>`;}).join("")}
+    ${st.packs.length<6&&sug.length?`<div class="pk-add">${sug.map(n=>`<button class="chip" data-add="${n}">＋ ${n===nAll&&nAll>10?`Todas (${n})`:`${n} fotos`}</button>`).join("")}</div>`:""}`;
+  const step=(i,f,d)=>{const p=st.packs[i];if(!p)return;
+    if(f==="n"){let n=p.n;do{n+=d;}while(n>=2&&n<=top&&st.packs.some((q,k)=>k!==i&&q.n===n));if(n<2||n>top)return;p.n=n;}
+    else p.price=Math.max(50,Math.min(p.n*u,p.price+d));
+    mountPacks(el,st,unit,nAll);};
+  // mantener apretado repite
+  let rep=null;const stop=()=>{clearTimeout(rep);clearInterval(rep);rep=null;};
+  el.onpointerdown=e=>{const b=e.target.closest("[data-s]");if(!b||b.disabled)return;e.preventDefault();const i=+b.closest(".pkrow").dataset.i,f=b.dataset.s,d=+b.dataset.d;
+    step(i,f,d);stop();rep=setTimeout(()=>{rep=setInterval(()=>step(i,f,d),90);},420);addEventListener("pointerup",stop,{once:true});addEventListener("pointercancel",stop,{once:true});};
   el.onclick=e=>{const a=e.target.closest("[data-add]"),d=e.target.closest("[data-del]");
     if(a){const n=+a.dataset.add;st.packs.push({n,price:r10(n*u*.8)});st.packs.sort((x,y)=>x.n-y.n);mountPacks(el,st,unit,nAll);}
     if(d){st.packs.splice(+d.dataset.del,1);mountPacks(el,st,unit,nAll);}};}
@@ -1058,13 +1075,13 @@ function ventasHTML(sales){if(sales===undefined)return `<div class="msess">${[1,
   sales.forEach(x=>{const d=new Date(x.paid_at),k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;(M[k]||(M[k]=[])).push(x);});
   const mesTxt=k=>{const s=new Date(k+"-15T12:00").toLocaleDateString("es-UY",{month:"long",year:"numeric"}).replace(" de "," ");return s[0].toUpperCase()+s.slice(1);};
   return `<div class="msess">
-    <div class="vstats"><span class="stat"><span class="mut">Vendiste</span><b class="tab">${sales.length} ${sales.length===1?"foto":"fotos"}</b></span><span class="stat"><span class="mut">Total</span><b class="tab">${plata(tot)}</b></span><span class="stat"><span class="mut">Para vos</span><b class="tab" style="color:var(--g-bueno)">${plata(net)}</b></span></div>
+    <div class="vstats"><span class="stat"><span class="mut">Vendiste</span><b class="tab">${sales.length} ${sales.length===1?"foto":"fotos"}</b></span><span class="stat"><span class="mut">Total</span><b class="tab">${plata(tot)}</b></span><span class="stat"><span class="mut">Ganancia</span><b class="tab" style="color:var(--g-bueno)">${plata(net)}</b></span></div>
     ${Object.keys(M).sort().reverse().map(k=>{const L=M[k],t=L.reduce((a,x)=>a+Number(x.amount),0),n=L.reduce((a,x)=>a+Number(x.amount)-Number(x.platform_fee),0),B={};
       L.forEach(x=>{(B[x.beach]||(B[x.beach]={n:0,t:0})).n++;B[x.beach].t+=Number(x.amount);});
       return `<div class="vm"><div class="vmh"><b>${mesTxt(k)}</b><span class="tab">${fotos(L.length)} · <b>${plata(t)}</b></span></div>
         ${Object.entries(B).sort((a,b)=>b[1].t-a[1].t).map(([b,v])=>`<div class="vrow"><span>📍 ${b}</span><span class="tab">${fotos(v.n)} · ${plata(v.t)}</span></div>`).join("")}
         <details><summary>Ver cada venta</summary>${L.map(x=>`<div class="vrow sm"><span>${new Date(x.paid_at).toLocaleDateString("es-UY",{day:"numeric",month:"numeric"})} · ${x.beach}${x.taken_at?` · foto de las ${t5(x.taken_at)}`:""}</span><span class="tab">${plata(x.amount)}</span></div>`).join("")}</details>
-        <p class="mut" style="font-size:13px;margin-top:6px">Para vos: <b style="color:var(--g-bueno)">${plata(n)}</b> (sin el 15% de Olas UY)</p></div>`;}).join("")}</div>`;}
+        <p class="mut" style="font-size:14px;margin-top:6px">Ganancia: <b style="color:var(--g-bueno)">${plata(n)}</b></p></div>`;}).join("")}</div>`;}
 // Sesiones del fotógrafo (publicadas y ocultas) con sus ventas
 async function fetchMine(){const{data,error}=await SB.from("sessions").select("id,beach,day,start_time,end_time,price,packs,published,created_at,photos(count)").eq("photographer_id",ME.id).order("day",{ascending:false}).order("created_at",{ascending:false}).limit(200);if(error)throw error;
   const[cv,st]=await Promise.all([covers(data.map(x=>x.id)),SB.rpc("my_session_stats").then(r=>r.data||[])]);const m={};st.forEach(x=>m[x.session_id]=x);
@@ -1138,13 +1155,13 @@ function recentReal(){const r=need("recent",()=>fetchSessions({limit:10}));
   return `<div class="rail">${r.map(x=>`<button class="shot" data-go="sesion=${x.id}" aria-label="${x.beach}, ${dLbl(x.day)}">${x.cover?`<img src="${PURL(x.cover)}" alt="" loading="lazy">`:""}<span class="cap"><span>${x.beach}<br><small>${dLbl(x.day)} · ${t5(x.start_time)}</small></span><small>${x.n} 📷</small></span></button>`).join("")}</div>`;}
 
 // Fotos: por defecto "Recientes" (últimos 7 días), primero las de tus playas favoritas.
-V.fotos=()=>{if(!isReal())return fotosDemo();const rec=S.fk<0,day=rec?null:iso(dayAt(S.fk)),since=iso(dayAt(6)),fav=[...FAVS].filter(b=>BEACHES.includes(b));
+V.fotos=()=>{if(!isReal())return fotosDemo();const rec=S.fk<0,day=rec?null:iso(dayAt(S.fk)),since=iso(dayAt(29)),fav=[...FAVS].filter(b=>BEACHES.includes(b));
   const list=need(`l:${S.beach}:${day||"rec"}`,()=>fetchSessions({beach:S.beach,day,since:rec?since:null}));
   const favL=rec&&!S.beach&&fav.length?need(`f:${fav.join("|")}`,()=>fetchSessions({beaches:fav,since})):null;
   const grid=l=>`<div class="sessions">${l.map(sessCardR).join("")}</div>`;
-  const favH=favL===null?"":`<h2 style="margin:4px 0 12px">♥ Tus playas</h2>${favL===undefined?skelGrid(2):favL&&favL.length?grid(favL):`<p class="emptyh" style="margin-bottom:8px">Todavía no hay fotos de ${fav.join(", ")} esta semana.</p>`}`;
+  const favH=favL===null?"":`<h2 style="margin:4px 0 12px">♥ Tus playas</h2>${favL===undefined?skelGrid(2):favL&&favL.length?grid(favL):`<p class="emptyh" style="margin-bottom:8px">Todavía no hay fotos de ${fav.join(", ")} este mes.</p>`}`;
   const rest=list&&favL?list.filter(x=>!favL.some(y=>y.id===x.id)):list;
-  const body=list===undefined?skelGrid(3):rest&&rest.length?grid(rest):list&&list.length?"":skelGrid(3)+`<p class="emptyh">Todavía no hay fotos de ${S.beach||"ninguna playa"} ${rec?"esta semana":dayName(S.fk).toLowerCase()}.</p>`;
+  const body=list===undefined?skelGrid(3):rest&&rest.length?grid(rest):list&&list.length?"":skelGrid(3)+`<p class="emptyh">Todavía no hay fotos de ${S.beach||"ninguna playa"} ${rec?"este mes":dayName(S.fk).toLowerCase()}.</p>`;
   const vis=BEACHES.filter(b=>!fav.includes(b)&&(VIEWS[b]||0)>0).sort((a,b)=>VIEWS[b]-VIEWS[a]),order=["",...fav,...vis,...BEACHES.filter(b=>!fav.includes(b)&&!vis.includes(b))];
   return{url:`olas.uy/fotos/${S.beach?slug(S.beach):"uruguay"}${day?"/"+day:""}`,title:"Fotos de surf",sec:"fotos",html:`
   <p class="ask">¿Dónde surfeaste?</p>
@@ -1152,7 +1169,7 @@ V.fotos=()=>{if(!isReal())return fotosDemo();const rec=S.fk<0,day=rec?null:iso(d
   <div class="rail" id="beachR">${order.map(b=>`<button class="bchip" data-b="${b}" data-n="${b?norm(b):""}" aria-pressed="${b===S.beach}"><i>${b?(FAVS.has(b)?"♥":b[0]):"🇺🇾"}</i>${b||"Todas"}</button>`).join("")}</div>
   <p class="emptyh" id="bQnone" hidden>No encontramos esa playa.</p>
   <p class="ask" style="margin-top:18px">¿Cuándo?</p>
-  <div class="rail" id="dayR"><button class="chip" data-k="-1" aria-pressed="${rec}">Recientes</button>${[0,1,2,3,4,5,6].map(k=>`<button class="chip" data-k="${k}" aria-pressed="${k===S.fk}">${dayName(k)}</button>`).join("")}</div>
+  <div class="rail" id="dayR"><button class="chip" data-k="-1" aria-pressed="${rec}">Recientes</button>${DAYS30.map(k=>`<button class="chip" data-k="${k}" aria-pressed="${k===S.fk}">${dayName(k)}</button>`).join("")}</div>
   <section style="margin-top:22px">${favH}${favH&&body?`<h2 style="margin:26px 0 12px">${S.beach?"":"Recientes"}</h2>`:""}${body}</section>`,
   after(){document.getElementById("beachR").onclick=e=>{const b=e.target.closest("[data-b]");if(b){S.beach=b.dataset.b;render();}};
     document.getElementById("dayR").onclick=e=>{const b=e.target.closest("[data-k]");if(b){S.fk=+b.dataset.k;render();}};
