@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#f7fbfc">
 <title>Olas UY · La casa del surf uruguayo</title>
@@ -55,8 +55,12 @@ nav.dock{position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:cal
 nav.dock a{display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap;padding:8px 14px 7px;min-width:68px;border-radius:24px;text-decoration:none;color:#0b5f70;font-weight:700;font-size:12px;line-height:1;transition:background .25s,color .25s}
 nav.dock a svg{width:22px;height:22px;flex:0 0 auto}
 nav.dock a.on{background:var(--ink);color:var(--white)}
-.wash{position:fixed;inset:0;width:100%;height:100%;z-index:8;pointer-events:none;display:none}
-.wash.on{display:block;pointer-events:auto}
+.ghost{position:fixed;z-index:7;pointer-events:none}
+nav.dock{touch-action:none}
+/* sin zoom con doble toque ni selección de texto (sí se puede escribir y seleccionar en los campos) */
+html{touch-action:manipulation;overflow-x:hidden}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text}
 @media (max-width:420px){nav.dock a{padding:8px 9px 7px;min-width:0;flex:1 1 0}nav.dock{width:calc(100% - 24px)}}
 
 main{padding-bottom:120px;min-height:70vh}
@@ -501,45 +505,47 @@ function render(){if(!FC||!FC.length)return; // todavía cargando el pronóstico
   const[r,arg]=(location.hash||"#inicio").slice(1).split("=");S.arg=decodeURIComponent(arg||"");const v=V[r]?r:"inicio";const o=V[v]();
   app.innerHTML=o.html;document.getElementById("url").textContent=o.url;document.title=(o.title?o.title+" · ":"")+"Olas UY";
   document.querySelectorAll(".dock a").forEach(a=>a.classList.toggle("on",a.dataset.sec===(o.sec||v)));o.after&&o.after();if(typeof paintCart==="function")paintCart();}
-function show(){if(vw.classList.contains("on"))closeViewer();if(typeof closeSim==="function")closeSim();if(typeof bs!=="undefined"&&bs.classList.contains("on")){bs.classList.remove("on");scrim.classList.remove("on");bsBeach=null;}if(document.startViewTransition&&!RM.matches&&!WASH.on)document.startViewTransition(()=>{render();scrollTo(0,0);});else{render();scrollTo(0,0);}}
+function show(){if(vw.classList.contains("on"))closeViewer();if(typeof closeSim==="function")closeSim();if(typeof bs!=="undefined"&&bs.classList.contains("on")){bs.classList.remove("on");scrim.classList.remove("on");bsBeach=null;}if(SLIDE){const sp=SLIDE;SLIDE=null;doSlide(sp);return;}if(document.startViewTransition&&!RM.matches)document.startViewTransition(()=>{render();scrollTo(0,0);});else{render();scrollTo(0,0);}}
 addEventListener("hashchange",show);
-// ============ Ola al cambiar de sección (barra de abajo) ============
-// Llega una ola desde arriba, tapa la pantalla, se cambia la sección y al retirarse queda la nueva.
-// Dibujada en canvas (agua turquesa + borde de espuma con burbujas). Con "reducir movimiento" no se usa.
-const WASH={on:false,cv:null};
-function wash(swap){const cv=WASH.cv||(WASH.cv=Object.assign(document.createElement("canvas"),{className:"wash"}));if(!cv.isConnected)document.body.appendChild(cv);
-  const dpr=Math.min(2,devicePixelRatio||1),W=innerWidth,H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);
-  const app=document.getElementById("app");
-  const bub=Array.from({length:Math.round(W/2.5)},()=>({x:Math.random()*W,d:Math.random()**1.8*60,r:.6+Math.random()*2.8,a:.25+Math.random()*.55,s:Math.random()*6}));
-  // borde suave: ondas largas que se mueven despacio (como la orilla de verdad)
-  const edge=(x,y0,t)=>y0+16*Math.sin(x*.0065+t*.9)+9*Math.sin(x*.017-t*1.3+1.7)+3*Math.sin(x*.043+t*2.1);
-  const draw=(p,t,fade)=>{c.clearRect(0,0,W,H);const y0=-110+p*(H+170);if(y0<-100)return;c.globalAlpha=fade;
-    // agua: más transparente hacia la orilla
-    const g=c.createLinearGradient(0,Math.max(0,y0-H*.9),0,y0);g.addColorStop(0,"rgba(16,142,166,.97)");g.addColorStop(.6,"rgba(44,184,198,.94)");g.addColorStop(1,"rgba(132,220,214,.86)");
-    c.fillStyle=g;c.beginPath();c.moveTo(0,0);for(let x=0;x<=W;x+=6)c.lineTo(x,edge(x,y0,t));c.lineTo(W,0);c.closePath();c.fill();
-    // arena mojada
-    const sh=c.createLinearGradient(0,y0,0,y0+56);sh.addColorStop(0,"rgba(120,96,60,.13)");sh.addColorStop(1,"rgba(120,96,60,0)");c.fillStyle=sh;
-    c.beginPath();for(let x=0;x<=W;x+=6)c.lineTo(x,edge(x,y0,t));c.lineTo(W,y0+60);c.lineTo(0,y0+60);c.closePath();c.fill();
-    // espuma
-    const line=(off,w,a,dash)=>{c.setLineDash(dash||[]);c.lineDashOffset=-t*12;c.strokeStyle=`rgba(255,255,255,${a})`;c.lineWidth=w;c.lineCap="round";c.lineJoin="round";
-      c.beginPath();for(let x=-8;x<=W+8;x+=5)c.lineTo(x,edge(x,y0,t)-off+1.5*Math.sin(x*.09+t*2.5+off));c.stroke();};
-    line(0,7,.9);line(10,3.5,.5,[4,8]);line(22,2.2,.32,[2,10]);line(38,1.6,.2,[1,12]);c.setLineDash([]);
-    bub.forEach(b=>{c.fillStyle=`rgba(255,255,255,${b.a*(.7+.3*Math.sin(t*2+b.s))})`;c.beginPath();c.arc(b.x,edge(b.x,y0,t)-b.d-2,b.r,0,7);c.fill();});c.globalAlpha=1;};
-  // llega rápido y frena (como el agua que sube por la arena), se queda un instante y se retira despacio
-  const up=x=>1-(1-x)**3,back=x=>(1-Math.cos(Math.PI*x))/2,IN=480,HOLD=60,OUT=640,t0=performance.now();let swapped=false;
-  WASH.on=true;cv.classList.add("on");
-  app.style.transition="opacity .35s ease";app.style.opacity="0";
-  const tick=now=>{const e=now-t0,t=e/1000;
-    if(e<IN)draw(up(e/IN),t,1);
-    else if(e<IN+HOLD){draw(1,t,1);if(!swapped){swapped=true;swap();}}
-    else if(e<IN+HOLD+OUT){const q=(e-IN-HOLD)/OUT;if(app.style.opacity==="0"){app.style.transition="none";app.style.opacity="1";}draw(1-back(q),t,1);}
-    else{c.clearRect(0,0,W,H);cv.classList.remove("on");app.style.transition="";app.style.opacity="";WASH.on=false;return;}
-    requestAnimationFrame(tick);};
-  requestAnimationFrame(tick);}
-document.querySelector("nav.dock").addEventListener("click",e=>{const a=e.target.closest("a[href^='#']");if(!a)return;const to=a.getAttribute("href");
-  if(RM.matches||location.hash===to||(!location.hash&&to==="#inicio"))return;e.preventDefault();
-  document.querySelectorAll(".dock a").forEach(x=>x.classList.toggle("on",x===a));
-  if(WASH.on){location.hash=to;return;}wash(()=>{location.hash=to;});});
+// ============ Cambio de sección deslizando (como Instagram) ============
+// Tocar o arrastrar la barra de abajo, o deslizar la pantalla hacia un costado: la pantalla actual se va
+// para un lado y la nueva entra desde el otro. Orden: Inicio · Pronósticos · Fotos · Vender.
+const TABS=["inicio","olas","fotos","vender"],SEC_OF={sesion:"fotos",fotografo:"fotos",listo:"fotos"};
+const tabNow=()=>{const r=(location.hash||"#inicio").slice(1).split("=")[0],v=V[r]?r:"inicio";return TABS.indexOf(SEC_OF[v]||v);};
+let SLIDE=null;
+function springBack(){const app=document.getElementById("app");app.style.transition="transform .28s cubic-bezier(.22,.8,.24,1),opacity .28s";app.style.transform="";app.style.opacity="";}
+function goTab(i,fromX=0){if(i<0||i>=TABS.length){springBack();return;}const cur=tabNow(),to="#"+TABS[i];
+  document.querySelectorAll(".dock a").forEach(x=>x.classList.toggle("on",x.dataset.sec===TABS[i]));
+  if(location.hash===to||(!location.hash&&i===0)){springBack();return;}
+  if(!RM.matches&&i!==cur)SLIDE={dir:i>cur?1:-1,fromX};location.hash=to;}
+function doSlide({dir,fromX}){const app=document.getElementById("app"),r=app.getBoundingClientRect(),W=innerWidth,ease="transform .34s cubic-bezier(.22,.8,.24,1),opacity .34s";
+  const g=document.createElement("div");g.className="ghost wrap";g.style.cssText=`top:${r.top}px;left:${r.left}px;width:${r.width}px;transform:translateX(${fromX}px);opacity:${app.style.opacity||1}`;
+  while(app.firstChild)g.appendChild(app.firstChild);document.body.appendChild(g);
+  render();scrollTo(0,0);app.style.transition="none";app.style.opacity="1";app.style.transform=`translateX(${dir*W+fromX}px)`;app.getBoundingClientRect();
+  requestAnimationFrame(()=>{app.style.transition=ease;app.style.transform="translateX(0)";g.style.transition=ease;g.style.transform=`translateX(${-dir*W}px)`;g.style.opacity=".6";});
+  setTimeout(()=>{g.remove();app.style.transition="";app.style.transform="";},380);}
+// Barra de abajo: tocar, o arrastrar el dedo por encima y soltar en la sección
+(()=>{const d=document.querySelector("nav.dock");let down=false,moved=false,x0=0,drag=false;
+  d.addEventListener("click",e=>{const a=e.target.closest("a[data-sec]");if(!a)return;e.preventDefault();if(drag)return;goTab(TABS.indexOf(a.dataset.sec));});
+  d.addEventListener("pointerdown",e=>{down=true;moved=false;x0=e.clientX;drag=false;});
+  d.addEventListener("pointermove",e=>{if(!down)return;if(Math.abs(e.clientX-x0)>10)moved=true;if(!moved)return;
+    const r=d.getBoundingClientRect(),a=document.elementFromPoint(Math.max(r.left+4,Math.min(r.right-4,e.clientX)),r.top+r.height/2)?.closest(".dock a");
+    if(a)d.querySelectorAll("a").forEach(x=>x.classList.toggle("on",x===a));});
+  const up=()=>{if(!down)return;down=false;if(!moved)return;drag=true;setTimeout(()=>drag=false,60);const a=d.querySelector("a.on");if(a)goTab(TABS.indexOf(a.dataset.sec));};
+  d.addEventListener("pointerup",up);d.addEventListener("pointercancel",()=>{down=false;});})();
+// Deslizar la pantalla hacia un costado (no en el mapa, carruseles, barras de hora ni campos)
+(()=>{let x0,y0,t0,mode="no",dx=0;const app=()=>document.getElementById("app");
+  const skip=t=>!t.closest("#app")||t.closest(".map,.rail,input,textarea,select,.sp,.wk7,.scrub,.timebar,.packs-ed")||document.body.style.overflow==="hidden";
+  addEventListener("touchstart",e=>{if(e.touches.length!==1||skip(e.target)||RM.matches){mode="no";return;}const p=e.touches[0];x0=p.clientX;y0=p.clientY;t0=Date.now();mode=null;dx=0;},{passive:true});
+  addEventListener("touchmove",e=>{if(mode==="no")return;const p=e.touches[0],mx=p.clientX-x0,my=p.clientY-y0;
+    if(mode===null){if(Math.abs(mx)<10&&Math.abs(my)<10)return;mode=Math.abs(mx)>Math.abs(my)*1.3?"h":"no";if(mode==="no")return;}
+    e.preventDefault();const cur=tabNow(),edge=(mx>0&&cur===0)||(mx<0&&cur===TABS.length-1);dx=edge?mx*.2:mx;
+    const a=app();a.style.transition="none";a.style.transform=`translateX(${dx}px)`;a.style.opacity=String(1-Math.min(.4,Math.abs(dx)/innerWidth*.6));},{passive:false});
+  const end=()=>{if(mode!=="h"){mode="no";return;}mode="no";const fast=Math.abs(dx)>40&&Date.now()-t0<260,go=Math.abs(dx)>innerWidth*.22||fast;
+    if(go)goTab(tabNow()+(dx<0?1:-1),dx);else springBack();};
+  addEventListener("touchend",end);addEventListener("touchcancel",end);})();
+// Sin zoom con los dedos (iOS ignora user-scalable=no) ni con doble toque
+addEventListener("gesturestart",e=>e.preventDefault());
 function go(r){if(location.hash==="#"+r)show();else location.hash=r;}
 // Tocar una playa en el inicio: va al pronóstico y abre esa playa.
 document.addEventListener("click",e=>{const el=e.target.closest("[data-beach-go]");if(el){S.goBeach=el.dataset.beachGo;S.sel={};S.day=0;S.hr=H0;}});
