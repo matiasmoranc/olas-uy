@@ -1476,7 +1476,7 @@ V.admin=()=>{const R=html=>({url:"olas.uy/admin",title:"Admin",sec:"vender",html
   if(!SB)return R('<div class="card" style="max-width:640px;margin:0 auto"><p class="mut">Cargando…</p></div>');
   if(!ME)return R(`<div class="card" style="max-width:640px;margin:0 auto"><h2>Admin</h2><p class="mut" style="margin:8px 0 16px">Entrá con tu cuenta de administrador.</p><div style="display:flex;flex-direction:column;gap:10px">${loginButtons()}</div></div>`);
   if(ADM.data===undefined){if(!ADM.loading){ADM.loading=true;loadAdmin().finally(()=>ADM.loading=false);}return R('<div class="card" style="max-width:640px;margin:0 auto"><p class="mut">Cargando…</p></div>');}
-  if(!ADM.data)return R(`<div class="card" style="max-width:640px;margin:0 auto"><h2>Sin acceso</h2><p class="mut" style="margin-top:8px">${ADM.err?.code==="42501"?"Esta cuenta no es administradora.":"No se pudieron cargar los datos. Probá de nuevo."}</p></div>`);
+  if(!ADM.data){const R2=R(`<div class="card" style="max-width:640px;margin:0 auto"><h2>Sin acceso</h2><p class="mut" style="margin:8px 0 16px">${ADM.err?.code==="42501"?`Entraste como <b style="color:var(--ink)">${esc(ME.email||"(sin mail)")}</b>. Ese mail no está en <b style="color:var(--ink)">ADMIN_EMAILS</b>.`:"No se pudieron cargar los datos."}</p><button class="btn soft" id="admR">↻ Probar de nuevo</button></div>`);return R2;}
   return R(adminHTML(ADM.data));};
 boot();initAccounts();
 </script>
