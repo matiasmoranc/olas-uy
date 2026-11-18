@@ -1206,17 +1206,18 @@ document.addEventListener("click",e=>{if(e.target.closest("[data-payinfo]")){e.p
 const plata=n=>Number.isInteger(+n)?money(+n):money2(+n);
 function ventasHTML(sales){if(sales===undefined)return `<div class="msess">${[1,2].map(()=>`<div class="ms skel" style="height:120px"></div>`).join("")}</div>`;
   if(!sales||!sales.length)return `<div class="card" style="max-width:640px;margin:0 auto;text-align:center"><h2>Todavía no vendiste fotos</h2><p class="mut" style="margin-top:6px">Acá vas a ver cada venta, por mes y por playa.</p></div>`;
-  const tot=sales.reduce((t,x)=>t+Number(x.amount),0),net=sales.reduce((t,x)=>t+Number(x.amount)-Number(x.platform_fee),0),M={};
+  const tot=sales.reduce((t,x)=>t+Number(x.amount),0),net=sales.reduce((t,x)=>t+Number(x.amount)*(1-MP_FEE_EST)-Number(x.platform_fee),0),M={};
   sales.forEach(x=>{const d=new Date(x.paid_at),k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;(M[k]||(M[k]=[])).push(x);});
   const mesTxt=k=>{const s=new Date(k+"-15T12:00").toLocaleDateString("es-UY",{month:"long",year:"numeric"}).replace(" de "," ");return s[0].toUpperCase()+s.slice(1);};
   return `<div class="msess">
-    <div class="vstats"><span class="stat"><span class="mut">Vendiste</span><b class="tab">${sales.length} ${sales.length===1?"foto":"fotos"}</b></span><span class="stat"><span class="mut">Total</span><b class="tab">${plata(tot)}</b></span><span class="stat"><span class="mut">Ganancia</span><b class="tab" style="color:var(--g-bueno)">${plata(net)}</b></span></div>
-    ${Object.keys(M).sort().reverse().map(k=>{const L=M[k],t=L.reduce((a,x)=>a+Number(x.amount),0),n=L.reduce((a,x)=>a+Number(x.amount)-Number(x.platform_fee),0),B={};
+    <div class="vstats"><span class="stat"><span class="mut">Vendiste</span><b class="tab">${sales.length} ${sales.length===1?"foto":"fotos"}</b></span><span class="stat"><span class="mut">Total</span><b class="tab">${plata(tot)}</b></span><span class="stat"><span class="mut">Ganancia</span><b class="tab" style="color:var(--g-bueno)">≈ ${plata(net)}</b></span></div>
+    <p class="mut" style="font-size:13px;margin:-4px 0 0">Ganancia = total − 15% Olas UY − ~6% Mercado Pago.</p>
+    ${Object.keys(M).sort().reverse().map(k=>{const L=M[k],t=L.reduce((a,x)=>a+Number(x.amount),0),n=L.reduce((a,x)=>a+Number(x.amount)*(1-MP_FEE_EST)-Number(x.platform_fee),0),B={};
       L.forEach(x=>{(B[x.beach]||(B[x.beach]={n:0,t:0})).n++;B[x.beach].t+=Number(x.amount);});
       return `<div class="vm"><div class="vmh"><b>${mesTxt(k)}</b><span class="tab">${fotos(L.length)} · <b>${plata(t)}</b></span></div>
         ${Object.entries(B).sort((a,b)=>b[1].t-a[1].t).map(([b,v])=>`<div class="vrow"><span>📍 ${b}</span><span class="tab">${fotos(v.n)} · ${plata(v.t)}</span></div>`).join("")}
         <details><summary>Ver cada venta</summary>${L.map(x=>`<div class="vrow sm"><span>${new Date(x.paid_at).toLocaleDateString("es-UY",{day:"numeric",month:"numeric"})} · ${x.beach}${x.taken_at?` · foto de las ${t5(x.taken_at)}`:""}</span><span class="tab">${plata(x.amount)}</span></div>`).join("")}</details>
-        <p class="mut" style="font-size:14px;margin-top:6px">Ganancia: <b style="color:var(--g-bueno)">${plata(n)}</b></p></div>`;}).join("")}
+        <p class="mut" style="font-size:14px;margin-top:6px">Ganancia: <b style="color:var(--g-bueno)">≈ ${plata(n)}</b></p></div>`;}).join("")}
     <p style="text-align:center"><button class="link" data-payinfo="1">ℹ️ ¿Cómo cobro?</button></p></div>`;}
 // Sesiones del fotógrafo (publicadas y ocultas) con sus ventas
 async function fetchMine(){const{data,error}=await SB.from("sessions").select("id,beach,day,start_time,end_time,price,packs,published,created_at,photos(count)").eq("photographer_id",ME.id).order("day",{ascending:false}).order("created_at",{ascending:false}).limit(200);if(error)throw error;
