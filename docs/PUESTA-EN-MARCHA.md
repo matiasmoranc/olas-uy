@@ -20,7 +20,7 @@ Tiempo total: 45–60 minutos. Todo es gratis para empezar (Cloudflare R2 pide u
    - **Project ref**: es el código de la URL, por ejemplo `abcdxyz` en `https://abcdxyz.supabase.co`.
 4. **Access token**: arriba a la derecha, tu avatar → *Account → Access Tokens → Generate new token* (nombre `github`). (Secreto)
 5. *Authentication → URL Configuration*:
-   - **Site URL**: `https://matiasmoranc.github.io/olas-uy/`
+   - **Site URL**: `https://olas.uy/`
    - **Redirect URLs** (agregá las dos): `https://matiasmoranc.github.io/olas-uy/**` y `https://olas.uy/**`
 
 ## 2. Entrar con Google · 15 min

@@ -4,7 +4,7 @@
 import { admin, cors, env, hmacHex, json, MP_API, userFrom } from "../_shared/util.ts";
 
 const REDIRECT = () => `${env("SUPABASE_URL")}/functions/v1/mp-connect`;
-const SITE = () => Deno.env.get("SITE_URL") ?? "https://matiasmoranc.github.io/olas-uy/";
+const SITE = () => Deno.env.get("SITE_URL") ?? "https://olas.uy/";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors(req) });
