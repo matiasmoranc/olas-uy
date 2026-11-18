@@ -119,12 +119,12 @@ const windTxt = (x) => x.ws < 8 ? "calmo" : `${x.ws} km/h ${WK[x.wk].t.toLowerCa
 const fmtH = (h) => `${m1(h)} m`;
 const appBeach = (b) => `${SITE}/#olas=${encodeURIComponent(b)}`;
 const appFotos = (b) => `${SITE}/#fotos=${encodeURIComponent(b)}`;
-const LOGO = `<svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M2 20c4 0 5-9 12-9 5 0 6 4 3 5-2 .8-4-1-3-2.5" stroke="#13a8c2" stroke-width="2.8" stroke-linecap="round"/><path d="M2 26c3 0 4-2 7-2s4 2 7 2 4-2 7-2 4 2 7 2" stroke="#ff6f4f" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+const LOGO = `<img src="/logo.svg" alt="" width="47" height="30">`;
 const CSS = `:root{--foam:#f7fbfc;--white:#fff;--sand:#f5ede0;--mist:#e6f4f7;--line:#dcebef;--ink:#0c2a38;--mut:#5f7c89;--aqua:#13a8c2;--aqua-d:#0b7f95;--coral:#ff6f4f;--display:"Bricolage Grotesque","Outfit",system-ui,sans-serif;--body:"Outfit",system-ui,-apple-system,"Segoe UI",sans-serif}
 *{box-sizing:border-box}html,body{margin:0}body{background:var(--foam);color:var(--ink);font:400 17px/1.55 var(--body);-webkit-font-smoothing:antialiased}
 a{color:var(--aqua-d)}.wrap{max-width:960px;margin:0 auto;padding:0 16px}
 header{background:rgba(247,251,252,.9);border-bottom:1px solid var(--line)}header .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:12px}
-.logo{display:flex;align-items:center;gap:8px;font:800 23px/1 var(--display);letter-spacing:-.03em;color:var(--ink);text-decoration:none}.logo svg{width:32px;height:32px}
+.logo{display:flex;align-items:center;gap:8px;font:800 23px/1 var(--display);letter-spacing:-.03em;color:var(--ink);text-decoration:none}.logo img{height:30px;width:auto;display:block}
 nav.top{display:flex;gap:6px;flex-wrap:wrap}nav.top a{font-weight:600;font-size:15px;text-decoration:none;color:var(--ink);padding:8px 12px;border-radius:999px}nav.top a:hover,nav.top a[aria-current]{background:var(--mist)}
 .crumbs{font-size:14px;color:var(--mut);margin:18px 0 6px}.crumbs a{color:var(--mut)}
 h1{font:800 clamp(30px,6vw,46px)/1.05 var(--display);letter-spacing:-.03em;margin:6px 0 8px}h2{font:800 clamp(22px,4vw,28px)/1.15 var(--display);letter-spacing:-.02em;margin:34px 0 12px}h3{font:700 19px/1.2 var(--display);margin:0 0 6px}
@@ -136,7 +136,7 @@ h1{font:800 clamp(30px,6vw,46px)/1.05 var(--display);letter-spacing:-.03em;margi
 .g[style*="f2c94c"]{color:var(--ink)}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:15px}th{font-size:13px;color:var(--mut);font-weight:600;text-align:left;padding:0 8px 8px 0}td{padding:10px 8px 10px 0;border-top:1px solid var(--line);vertical-align:middle}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}td{white-space:nowrap}
-@media (max-width:560px){nav.top a{padding:7px 9px;font-size:14px}nav.top .x{display:none}.logo{font-size:20px}.logo svg{width:28px;height:28px}h1{font-size:30px}table{font-size:14px}}
+@media (max-width:560px){nav.top a{padding:7px 9px;font-size:14px}nav.top .x{display:none}.logo{font-size:20px}.logo img{height:26px}h1{font-size:30px}table{font-size:14px}}
 .btn{display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:#fff;text-decoration:none;font-weight:700;border-radius:999px;padding:13px 20px}.btn.c{background:var(--coral)}.btn.s{background:var(--mist);color:var(--ink)}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
@@ -168,7 +168,10 @@ function page({ url, title, description, h1, crumbs, body, ld = [], navCur }) {
 <meta property="og:url" content="${SITE}${url}">
 <meta property="og:image" content="${SITE}/og.png">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Outfit:wght@400;600;700&display=swap">
 <style>${CSS}</style>
@@ -231,7 +234,7 @@ const T = F.T, todayDate = new Date(Date.UTC(T.y, T.m - 1, T.d));
 const upd = `Actualizado el ${longDate(todayDate)} a las ${String(T.h).padStart(2, "0")}:00 (hora de Uruguay)`;
 const out = [];
 const write = (rel, content) => { const p = path.join(ROOT, rel); fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, content); out.push(rel); };
-const ORG = { "@context": "https://schema.org", "@type": "Organization", name: "Olas UY", url: SITE + "/", logo: SITE + "/favicon.svg" };
+const ORG = { "@context": "https://schema.org", "@type": "Organization", name: "Olas UY", url: SITE + "/", logo: SITE + "/icon-512.png" };
 
 // Playas
 for (const b of BEACHES) {
