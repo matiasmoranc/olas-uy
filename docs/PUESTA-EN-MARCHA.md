@@ -120,3 +120,11 @@ Muestra visitas por día y por hora, usuarios registrados, fotógrafos, ventas y
 1. En **GitHub → Settings → Secrets → Actions** creá `ADMIN_EMAILS` con tu mail (el de la cuenta con la que entrás a Olas UY). Si son varios, separalos con coma.
 2. Corré **Actions → Servidor (Supabase) → Run workflow**.
 3. Entrá a **olas.uy/#admin** (o tocá tu inicial arriba a la derecha → **📊 Admin**).
+
+## 10. Google Search Console (para aparecer en Google) · 10 min
+
+1. Entrá a **search.google.com/search-console** con tu cuenta de Google → *Agregar propiedad* → **Dominio** → `olas.uy`.
+2. Google te da un registro `TXT` (empieza con `google-site-verification=`). En **Cloudflare → olas.uy → DNS → Add record**: tipo `TXT`, nombre `@`, contenido el que te dio Google. Volvé y tocá *Verificar*.
+3. En el menú **Sitemaps** agregá `sitemap.xml` y enviá.
+4. En **Inspección de URLs** pegá `https://olas.uy/pronostico/` y tocá *Solicitar indexación* (hacé lo mismo con `https://olas.uy/fotos/` y las zonas).
+

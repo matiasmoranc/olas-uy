@@ -1,0 +1,41 @@
+# Páginas para Google: regenera /pronostico/ (Uruguay, zonas y cada playa), /fotos/, sitemap.xml y robots.txt
+# con el pronóstico del día (tools/seo.mjs) y las publica. Corre todas las mañanas, al cambiar el generador
+# o index.html, y a mano (Actions → Páginas para Google → Run workflow).
+name: Páginas para Google
+
+on:
+  schedule:
+    - cron: "41 8 * * *"     # 5:41 de Uruguay
+    - cron: "41 17 * * *"    # 14:41 de Uruguay (la tarde con el pronóstico nuevo)
+  push:
+    branches: [main]
+    paths: ["tools/seo.mjs", "index.html", "config.js", ".github/workflows/seo.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: seo-pages
+  cancel-in-progress: false
+
+jobs:
+  pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generar páginas
+        run: node tools/seo.mjs
+      - name: Publicar si cambiaron
+        run: |
+          git add pronostico fotos sitemap.xml robots.txt
+          if git diff --cached --quiet; then echo "Sin cambios."; exit 0; fi
+          git config user.name "olas-uy-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Páginas para Google: pronóstico del $(TZ=America/Montevideo date +%d/%m\ %H:%M)"
+          git pull --rebase origin main
+          git push
