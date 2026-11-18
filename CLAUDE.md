@@ -4,10 +4,10 @@
 
 ## Publicación
 
-- GitHub Pages: https://matiasmoranc.github.io/olas-uy/ (rama `main`, carpeta raíz). Cada push a `main` se publica solo en 1–2 minutos.
-- **Por ahora el sitio solo se ve desde el link de github.io.** No hay archivo `CNAME`, así que **olas.uy no muestra nada** (decisión del usuario).
-- Dominio olas.uy: registrado en Hosting Montevideo, DNS en Cloudflare apuntando a GitHub Pages (A de `@` a 185.199.108–111.153, CNAME `www` → `matiasmoranc.github.io`, nube gris). Para activarlo: agregar `CNAME` con `olas.uy` y configurar el dominio en Settings → Pages.
-- `index.html` tiene `noindex` mientras sea una maqueta con datos de ejemplo. Sacarlo cuando el contenido sea real.
+- **Sitio en https://olas.uy/** (GitHub Pages, rama `main`, carpeta raíz, archivo `CNAME` con `olas.uy`). Cada push a `main` se publica solo en 1–2 minutos. El link viejo de github.io redirige solo a olas.uy.
+- Dominio olas.uy: registrado en Hosting Montevideo, DNS en Cloudflare apuntando a GitHub Pages (A de `@` a 185.199.108–111.153, CNAME `www` → `matiasmoranc.github.io`, nube gris). En Settings → Pages: dominio `olas.uy` y "Enforce HTTPS".
+- `SITE` (funciones) = `https://olas.uy/` (o el secret `SITE_URL`): vuelta de Mercado Pago, links de los mails. Supabase → Authentication → URL Configuration: Site URL `https://olas.uy/`.
+- Sin `noindex`: el sitio ya es indexable.
 - `maqueta/index.html` solo redirige a la raíz (link viejo).
 
 ## Estado actual

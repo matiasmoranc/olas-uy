@@ -100,5 +100,5 @@ export const one = <T>(x: T | T[] | null | undefined): T | undefined => (Array.i
 
 export const round2 = (n: number) => Math.round(n * 100) / 100;
 // Dirección del sitio (adonde vuelve Mercado Pago y a donde apuntan los mails).
-export const SITE = () => Deno.env.get("SITE_URL") ?? "https://matiasmoranc.github.io/olas-uy/";
+export const SITE = () => Deno.env.get("SITE_URL") ?? "https://olas.uy/";
 export const isUuid = (s: unknown): s is string => typeof s === "string" && /^[0-9a-f-]{36}$/i.test(s);
