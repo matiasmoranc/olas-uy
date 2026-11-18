@@ -971,21 +971,36 @@ async function publishSession(){UP.busy=true;UP.done=0;UP.total=UP.files.length;
     UP.result={beach:UP.beach,day:UP.k,n:UP.done,price:UP.price,packs:UP.packs};UP.packs=[];clearRC();UP.urls.forEach(URL.revokeObjectURL);UP.files=[];UP.urls=[];UP.step=4;
   }catch(e){console.error(e);toast(e.message?.startsWith("No se pudo")?e.message:"No se pudo publicar: "+(e.message||"error"));}
   UP.busy=false;render();}
+// Nombre y apellido del fotógrafo (obligatorios: se muestran en cada sesión)
+const fullName=n=>/^\S+(\s+\S+)+$/.test((n||"").trim());
+function nameParts(cur){const m=ME?.user_metadata||{},full=(cur||m.full_name||m.name||"").trim().replace(/\s+/g," "),i=full.indexOf(" ");
+  if(!cur&&m.given_name)return[m.given_name,m.family_name||""];return i<0?[full,""]:[full.slice(0,i),full.slice(i+1)];}
+const esc=v=>String(v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+const nameFields=(f,l)=>`<div class="row" style="gap:10px;align-items:flex-start"><label class="fld" for="pfN" style="flex:1;min-width:0">Nombre<input class="inp" id="pfN" required minlength="2" maxlength="30" autocomplete="given-name" value="${esc(f)}"></label>
+      <label class="fld" for="pfA" style="flex:1;min-width:0">Apellido<input class="inp" id="pfA" required minlength="2" maxlength="29" autocomplete="family-name" value="${esc(l)}"></label></div>`;
+const nameVal=()=>`${document.getElementById("pfN").value} ${document.getElementById("pfA").value}`.trim().replace(/\s+/g," ");
 function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender fotos",sec:"vender",html,after});
   if(!ME)return R(cardH(`<h2>Vendé tus fotos</h2><p class="mut" style="margin:8px 0 16px">Entrá para crear tu perfil de fotógrafo. Desde cualquier dispositivo entrás con la misma cuenta.</p><div style="display:flex;flex-direction:column;gap:10px">${loginButtons()}</div>`));
   if(PH_ME===undefined){loadMe().then(()=>{if(location.hash==="#vender")render();});return R(cardH('<p class="mut">Cargando…</p>'));}
   // ---- Alta de fotógrafo
-  if(PH_ME===null){const n=ME.user_metadata?.full_name||"";
+  if(PH_ME===null){const[f,l]=nameParts();
     return R(cardH(`<h2>Tu perfil de fotógrafo</h2><p class="mut" style="margin-top:6px">Así te van a ver los surfistas.</p>
-      <form id="pf"><label class="fld" for="pfN">Nombre<input class="inp" id="pfN" required minlength="2" maxlength="60" value="${n.replace(/"/g,"&quot;")}"></label>
+      <form id="pf">${nameFields(f,l)}
       <label class="fld" for="pfZ">Dónde sacás fotos<select class="inp" id="pfZ">${ZONES.map(z=>`<option>${z}</option>`).join("")}</select></label>
       <label class="fld" for="pfB">Sobre vos <span style="font-weight:400">(opcional)</span><textarea class="inp" id="pfB" maxlength="400" placeholder="Ej: fotos desde el agua en La Pedrera, casi todas las mañanas"></textarea></label>
       <button class="btn block" style="margin-top:16px">Crear mi perfil</button></form>`),
       ()=>{document.getElementById("pf").onsubmit=async e=>{e.preventDefault();const btn=e.target.querySelector("button");btn.disabled=true;
-        const name=document.getElementById("pfN").value.trim(),row={id:ME.id,name,zone:document.getElementById("pfZ").value,bio:document.getElementById("pfB").value.trim()||null,avatar_url:ME.user_metadata?.avatar_url||null};
+        const name=nameVal(),row={id:ME.id,name,zone:document.getElementById("pfZ").value,bio:document.getElementById("pfB").value.trim()||null,avatar_url:ME.user_metadata?.avatar_url||null};
         let base=slug(name).slice(0,32);if(base.length<3)base="fotografo";let res;
         for(let t=0;t<4;t++){res=await SB.from("photographers").insert({...row,slug:t?`${base}-${Math.floor(Math.random()*900+100)}`:base}).select().single();if(!res.error||res.error.code!=="23505")break;}
         if(res.error){toast("No se pudo crear el perfil");btn.disabled=false;return;}PH_ME=res.data;toast("¡Perfil creado!");render();};});}
+  // ---- Perfiles viejos sin apellido: se lo pedimos antes de seguir
+  if(!fullName(PH_ME.name)){const[f,l]=nameParts(PH_ME.name);
+    return R(cardH(`<h2>Sumá tu apellido</h2><p class="mut" style="margin-top:6px">Los surfistas ven tu nombre completo: les da confianza para comprar.</p>
+      <form id="pf">${nameFields(f,l)}<button class="btn block" style="margin-top:16px">Guardar</button></form>`),
+      ()=>{document.getElementById("pf").onsubmit=async e=>{e.preventDefault();const btn=e.target.querySelector("button");btn.disabled=true;
+        const res=await SB.from("photographers").update({name:nameVal()}).eq("id",ME.id).select().single();
+        if(res.error){toast("No se pudo guardar");btn.disabled=false;return;}PH_ME=res.data;clearRC();toast("¡Listo!");render();};});}
   const mpOk=PH_ME.mp_connected;
   const mpBar=mpOk?"":`<div class="mpbar"><span><b>Conectá Mercado Pago</b><br><span class="mut" style="font-size:14px">Para cobrar tus ventas directo en tu cuenta.</span></span><button class="btn mp" id="mpC" style="padding:11px 16px;flex:0 0 auto">Conectar</button></div>`;
   const wire=()=>{const $=id=>document.getElementById(id);
@@ -1180,7 +1195,7 @@ async function fetchPhotographer(sl){const{data:p,error}=await SB.from("photogra
 const one=x=>Array.isArray(x)?x[0]:x;
 const skelRail=n=>`<div class="rail">${Array.from({length:n},()=>`<span class="shot skel" aria-hidden="true"></span>`).join("")}</div>`;
 const skelGrid=n=>`<div class="sessions">${Array.from({length:n},()=>`<span class="sess skel" aria-hidden="true"></span>`).join("")}</div>`;
-const sessCardR=x=>`<button class="sess" data-go="sesion=${x.id}" aria-label="${x.beach}, ${dLbl(x.day)}, ${fotos(x.n)}">${x.cover?`<img src="${PURL(x.cover)}" alt="" loading="lazy">`:`<span class="ph0"></span>`}<span class="tag">${dLbl(x.day)} · ${t5(x.start_time)}–${t5(x.end_time)}</span><span class="ov"><b>${x.beach}</b><span>${(x.photographer?.name||"").split(" ")[0]} · ${fotos(x.n)}</span></span></button>`;
+const sessCardR=x=>`<button class="sess" data-go="sesion=${x.id}" aria-label="${x.beach}, ${dLbl(x.day)}, ${fotos(x.n)}">${x.cover?`<img src="${PURL(x.cover)}" alt="" loading="lazy">`:`<span class="ph0"></span>`}<span class="tag">${dLbl(x.day)} · ${t5(x.start_time)}–${t5(x.end_time)}</span><span class="ov"><b>${x.beach}</b><span>${x.photographer?.name||""} · ${fotos(x.n)}</span></span></button>`;
 function recentReal(){const r=need("recent",()=>fetchSessions({limit:10}));
   if(r===undefined)return skelRail(3);
   if(!r||!r.length)return skelRail(3)+`<p class="emptyh">Acá van a aparecer las fotos de las sesiones.</p>`;
