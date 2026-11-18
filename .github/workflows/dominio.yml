@@ -1,0 +1,54 @@
+# Dominio olas.uy: deja Supabase (Site URL y Redirect URLs) y GitHub Pages (dominio + HTTPS) configurados.
+# Corre solo al cambiar este archivo en main, o a mano (Actions → Dominio olas.uy → Run workflow).
+# Usa SUPABASE_ACCESS_TOKEN y SUPABASE_PROJECT_REF (ya cargados) y el token propio de GitHub Actions.
+name: Dominio olas.uy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [".github/workflows/dominio.yml"]
+
+permissions:
+  contents: read
+  pages: write
+
+jobs:
+  dominio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Supabase → Site URL y Redirect URLs
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then echo "Faltan secrets de Supabase"; exit 1; fi
+          node - <<'JS'
+          (async () => {
+            const url = `https://api.supabase.com/v1/projects/${process.env.SUPABASE_PROJECT_REF}/config/auth`;
+            const h = { Authorization: `Bearer ${process.env.SUPABASE_ACCESS_TOKEN}`, "Content-Type": "application/json" };
+            const cur = await fetch(url, { headers: h });
+            if (!cur.ok) { console.error("Supabase respondió", cur.status, await cur.text()); process.exit(1); }
+            const c = await cur.json();
+            console.log("Antes → Site URL:", c.site_url, "| Redirect URLs:", c.uri_allow_list);
+            const list = new Set(String(c.uri_allow_list || "").split(",").map((s) => s.trim()).filter(Boolean));
+            ["https://olas.uy/**", "https://www.olas.uy/**", "https://matiasmoranc.github.io/olas-uy/**"].forEach((u) => list.add(u));
+            const body = { site_url: "https://olas.uy/", uri_allow_list: [...list].join(",") };
+            const r = await fetch(url, { method: "PATCH", headers: h, body: JSON.stringify(body) });
+            if (!r.ok) { console.error("Supabase respondió", r.status, await r.text()); process.exit(1); }
+            const n = await r.json();
+            console.log("Ahora → Site URL:", n.site_url, "| Redirect URLs:", n.uri_allow_list);
+          })();
+          JS
+
+      - name: GitHub Pages → dominio olas.uy y HTTPS
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          api() { curl -sS -w '\n%{http_code}\n' -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$@"; }
+          echo "== Estado de Pages"; api "https://api.github.com/repos/$REPO/pages"
+          echo "== Dominio"; api -X PUT "https://api.github.com/repos/$REPO/pages" -d '{"cname":"olas.uy"}'
+          echo "== HTTPS"; api -X PUT "https://api.github.com/repos/$REPO/pages" -d '{"https_enforced":true}'
+          echo "== Certificado"; api "https://api.github.com/repos/$REPO/pages/health" || true
