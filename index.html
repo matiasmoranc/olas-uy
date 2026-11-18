@@ -146,6 +146,7 @@ section{margin-top:44px}
 .timebar{position:sticky;top:calc(64px + env(safe-area-inset-top,0px));z-index:5;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:10px 18px;display:flex;align-items:center;gap:12px;margin-bottom:12px;box-shadow:var(--shadow)}
 .timebar b{font:800 20px/1 var(--display);min-width:92px;white-space:nowrap}
 .timebar input{flex:1;accent-color:var(--aqua);min-width:0}
+.pill.sky{background:var(--foam);border:1px solid var(--line);font-weight:700}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;font-weight:600;color:var(--mut);margin:-4px 0 14px}
 .legend span{display:inline-flex;align-items:center;gap:4px}
 .legend svg{width:16px;height:16px}
@@ -399,9 +400,14 @@ const expo=(f,dir)=>{if(dir==null)return 1;const d=angDiff(dir,f);return d<=35?1
 // Altura en la playa: mar de fondo + mar de viento, cada uno según su dirección
 function effH(f,[h,d,,sh,sd,wh,wwd]){if(h==null)return null;if(sh!=null&&wh!=null){const a=sh*expo(f,sd??d),b=wh*expo(f,wwd??d);return Math.min(h,Math.hypot(a,b));}return h*expo(f,d);}
 function windK(f,wd,ws){if(ws==null||wd==null||ws<8)return"calmo";const d=angDiff(wd,(f+180)%360);return d<=50?"terral":d>=130?"mar":"cruzado";}
-function mkHour(clk,h,per,ws,wd,wk){const sc=score(h,per,ws,wk),g=(h!=null&&h>=3)||(ws!=null&&ws>=50)?5:h==null||h<.3?0:sc>=7?4:sc>=5?3:sc>=3?2:1;
-  return{clk,h:h??0,per:per==null?0:Math.round(per),ws:ws==null?0:Math.round(ws),wk,wd,sc,g};}
-const HM="wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,wind_wave_height,wind_wave_direction",HW="wind_speed_10m,wind_direction_10m";
+function mkHour(clk,h,per,ws,wd,wk,wx){const sc=score(h,per,ws,wk),g=(h!=null&&h>=3)||(ws!=null&&ws>=50)?5:h==null||h<.3?0:sc>=7?4:sc>=5?3:sc>=3?2:1;
+  return{clk,h:h??0,per:per==null?0:Math.round(per),ws:ws==null?0:Math.round(ws),wk,wd,sc,g,rn:wx?.[0]??null,pp:wx?.[1]??null,cc:wx?.[2]??null};}
+// Cielo: un ícono y un dato. Llueve (≥0,2 mm o ≥50% de probabilidad) → 🌧 mm o %; si no, nubes en % (☀️ 🌤 ⛅ ☁️, 🌙 de noche)
+function sky(f){if(f.cc==null&&f.rn==null)return null;const night=f.clk<6||f.clk>=20,rain=(f.rn??0)>=.2||(f.pp??0)>=50;
+  if(rain){const t=(f.rn??0)>=.2?`${m1(f.rn)} mm`:`${Math.round(f.pp)}%`;return{i:"🌧",t,a:`lluvia ${(f.rn??0)>=.2?m1(f.rn)+" milímetros":"probable, "+Math.round(f.pp)+" por ciento"}`};}
+  const c=Math.round(f.cc??0),i=c<20?(night?"🌙":"☀️"):c<50?(night?"🌙":"🌤"):c<80?"⛅":"☁️";return{i,t:`${c}%`,a:`nubosidad ${c} por ciento`};}
+const skyChip=f=>{const k=sky(f);return k?`<span class="pill sky" title="${k.a}" aria-label="${k.a}">${k.i} ${k.t}</span>`:"";};
+const HM="wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,wind_wave_height,wind_wave_direction",HW="wind_speed_10m,wind_direction_10m,precipitation,precipitation_probability,cloud_cover";
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function getJSON(u,tries=3){for(let k=0;;k++){const c=new AbortController(),t=setTimeout(()=>c.abort(),10000);
   try{const r=await fetch(u,{signal:c.signal});if(!r.ok)throw new Error(r.status);return await r.json();}catch(e){if(k>=tries-1)throw e;await sleep(1500*(k+1));}finally{clearTimeout(t);}}}
@@ -411,12 +417,12 @@ async function loadLive(){const lat=BEACHES.map(b=>SPOT[b][0]).join(","),lon=BEA
   const[m,w]=await Promise.all([getJSON(`https://marine-api.open-meteo.com/v1/marine?${q}&hourly=${HM}`),getJSON(`https://api.open-meteo.com/v1/forecast?${q}&hourly=${HW}`)]);
   const M=Array.isArray(m)?m:[m],W=Array.isArray(w)?w:[w],times=M[0].hourly.time,r2=v=>v==null?null:Math.round(v*100)/100;
   return{at:Date.now(),times,b:BEACHES.map((b,k)=>{const mh=M[k].hourly,wh=W[k].hourly;
-    return times.map((t,i)=>{const j=wh.time.indexOf(t);return[mh.wave_height[i],mh.wave_direction[i],mh.wave_period[i],mh.swell_wave_height[i],mh.swell_wave_direction[i],mh.wind_wave_height[i],mh.wind_wave_direction?mh.wind_wave_direction[i]:null,j>=0?wh.wind_speed_10m[j]:null,j>=0?wh.wind_direction_10m[j]:null].map(r2);});})};}
+    return times.map((t,i)=>{const j=wh.time.indexOf(t);return[mh.wave_height[i],mh.wave_direction[i],mh.wave_period[i],mh.swell_wave_height[i],mh.swell_wave_direction[i],mh.wind_wave_height[i],mh.wind_wave_direction?mh.wind_wave_direction[i]:null,j>=0?wh.wind_speed_10m[j]:null,j>=0?wh.wind_direction_10m[j]:null,j>=0&&wh.precipitation?wh.precipitation[j]:null,j>=0&&wh.precipitation_probability?wh.precipitation_probability[j]:null,j>=0&&wh.cloud_cover?wh.cloud_cover[j]:null].map(r2);});})};}
 let FC=[],NDAYS=7,SRC={kind:"loading",at:0};
 // Arma las tarjetas desde hoy 0:00. Devuelve false si los datos no alcanzan para hoy.
 function build(D){const t0=`${iso(today)}T00:00`,s0=D.times.indexOf(t0);if(s0<0||D.times.length-s0<H0+1)return false;
   const n=Math.min(7*24,D.times.length-s0);NDAYS=Math.max(1,Math.floor(n/24));
-  FC=BEACHES.map((b,k)=>{const f=SPOT[b][2];return{b,hours:Array.from({length:NDAYS*24},(_,i)=>{const x=D.b[k][s0+i]||[];const h=effH(f,x),ws=x[7],wd=x[8];return mkHour(i%24,h,x[2],ws,wd,windK(f,wd,ws));})};});
+  FC=BEACHES.map((b,k)=>{const f=SPOT[b][2];return{b,hours:Array.from({length:NDAYS*24},(_,i)=>{const x=D.b[k][s0+i]||[];const h=effH(f,x),ws=x[7],wd=x[8];return mkHour(i%24,h,x[2],ws,wd,windK(f,wd,ws),[x[9],x[10],x[11]]);})};});
   return true;}
 const CK="olasuy-fc";
 const saveCache=D=>{try{localStorage.setItem(CK,JSON.stringify(D));}catch(e){}};
@@ -428,7 +434,8 @@ const sampleFC=()=>BEACHES.map((b,k)=>{const r=rng(k+3),open=ZONE(b)==="Rocha"?1
   const hours=Array.from({length:168},(_,i)=>{const clk=i%24,h=Math.max(.1,open*(1+.45*Math.sin(i/14+k)+.2*Math.sin(i/5+k)+.08*r())),per=Math.round(p0+2*Math.sin(i/20+k));
     const wk=clk>=6&&clk<11?(r()<.8?"terral":"cruzado"):clk>=13&&clk<20?(r()<.75?"mar":"cruzado"):(r()<.5?"terral":"cruzado");
     const ws=Math.round(w0+(clk>=13&&clk<20?10:0)+6*Math.sin(i/30+k)+r()*5),wd={terral:340,cruzado:250,mar:160}[wk]+Math.round(r()*30-15),sc=score(h,per,ws,wk);
-    return{clk,h,per,ws:Math.max(2,ws),wk,wd,sc,g:h<.3?0:sc>=7?4:sc>=5?3:sc>=3?2:1};});
+    const cc=Math.round(Math.max(0,Math.min(100,50+45*Math.sin(i/17+k)))),rn=cc>85&&r()<.5?Math.round(r()*30)/10:0;
+    return{clk,h,per,ws:Math.max(2,ws),wk,wd,sc,g:h<.3?0:sc>=7?4:sc>=5?3:sc>=3?2:1,cc,rn,pp:rn?70:Math.round(cc/4)};});
   return{b,hours};});
 const at=(F,i)=>F.hours[Math.min(i,F.hours.length-1)];
 // Mejor hora con luz (6 a 20 h) de un día
@@ -610,7 +617,7 @@ V.inicio=()=>{const best0=[...FC].sort((a,b)=>at(b,H0).sc-at(a,H0).sc)[0],bo=bes
 
 function waveCard(F,inSheet){const own=S.sel[F.b],[d,hr]=own||[S.day,S.hr],f=at(F,d*24+hr),open=true,bo=bestOf(F,d),fv=FAVS.has(F.b);
   return `<div class="wv${open?" open":""}" data-b="${F.b}" aria-label="${F.b}, ${clkLbl(d,hr)}: ${m1(f.h)} metros, puntaje ${m1(f.sc)} de 10, ${GR[f.g][0]}, período ${f.per} segundos, viento ${WK[f.wk].t.toLowerCase()} ${f.ws} km/h">
-    <span class="top"><span><b><button class="fav" data-fav="${F.b}" aria-pressed="${fv}" aria-label="${fv?"Quitar de":"Agregar a"} tus playas">${fv?"♥":"♡"}</button>${F.b}</b><span class="row" style="gap:6px"><span class="pill" style="--c:${GR[f.g][1]}">${GR[f.g][0]}</span>${own?`<button class="tpill" data-reset="${F.b}" aria-label="Volver a la hora general">🕐 ${clkLbl(d,hr)} ✕</button>`:""}</span></span><span class="hbig tab">${m1(f.h)}<small> m</small></span></span>
+    <span class="top"><span><b><button class="fav" data-fav="${F.b}" aria-pressed="${fv}" aria-label="${fv?"Quitar de":"Agregar a"} tus playas">${fv?"♥":"♡"}</button>${F.b}</b><span class="row" style="gap:6px"><span class="pill" style="--c:${GR[f.g][1]}">${GR[f.g][0]}</span>${skyChip(f)}${own?`<button class="tpill" data-reset="${F.b}" aria-label="Volver a la hora general">🕐 ${clkLbl(d,hr)} ✕</button>`:""}</span></span><span class="hbig tab">${m1(f.h)}<small> m</small></span></span>
     <span class="facts tab"><span class="fact score" style="--c:${GR[f.g][1]}">⭐ ${m1(f.sc)}<small>/10</small></span><span class="fact">${clock}${f.per}<small>s</small></span><span class="fact" style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}<small>km/h</small></span></span>
     <span class="hours">${spark(F,d,hr)}<span class="hl" aria-hidden="true">${[0,6,12,18].map(k=>`<span style="left:${k/24*100}%">${k} h</span>`).join("")}</span></span>
     <button class="simb" data-sim="${F.b}" aria-label="Ver simulación de la ola en ${F.b}, ${clkLbl(d,hr)}">▶ Simulación</button>
@@ -781,7 +788,7 @@ function paintSimInfo(){const F=FC.find(x=>x.b===simB),[d,hr]=simTime(),f=at(F,d
   wCfg={h:f.h,p:f.per||8,ws:f.ws,wk:f.wk,type:ty};wParts=[];
   simv.querySelector("#smT").textContent=clkLbl(d,hr);simv.querySelector("#smH").textContent=d===0&&hr===H0?"Ahora":`${hr}:00`;
   simv.querySelector("#smI").innerHTML=`<h2>${ty.t}</h2><p class="mut">${ty.d}</p>
-    <span class="facts tab" style="margin-top:12px"><span class="fact hgt">${m1(f.h)}<small> m</small></span><span class="fact">${clock}${f.per}<small>s</small></span><span class="fact" style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}<small>km/h</small></span></span>`;
+    <span class="facts tab" style="margin-top:12px"><span class="fact hgt">${m1(f.h)}<small> m</small></span><span class="fact">${clock}${f.per}<small>s</small></span><span class="fact" style="color:${WK[f.wk].c}">${arrow(f.wd,WK[f.wk].c)}${f.ws}<small>km/h</small></span></span>${sky(f)?`<p style="margin-top:10px">${skyChip(f)}</p>`:""}`;
   simv.querySelector("#smD").innerHTML=[...Array(NDAYS).keys()].map(k=>`<button class="chip" data-sd="${k}" aria-pressed="${k===d}">${DIAS_F(k)}</button>`).join("");
   const R=simv.querySelector("#smR");R.min=d?0:H0;R.value=hr;
   if(RM.matches)simFrame(performance.now(),true);}
@@ -830,7 +837,7 @@ V.olas=()=>{const idx=S.day*24+S.hr,byScore=(a,b)=>at(b,idx).sc-at(a,idx).sc;
   <div class="ctrls">
     <div class="rail days" id="days">${[...Array(NDAYS).keys()].map(k=>`<button class="chip" data-d="${k}" aria-pressed="${k===S.day}">${DIAS_F(k)}</button>`).join("")}</div>
     <div class="timebar"><span aria-hidden="true">🕐</span><b id="tL" class="tab">${clkLbl(S.day,S.hr)}</b><input type="range" id="tR" min="${S.day?0:H0}" max="23" value="${S.hr}" aria-label="Hora del pronóstico"></div>
-    <div class="legend" aria-label="Referencias"><span>⭐ Puntaje</span>${Object.values(WK).map(w=>`<span>${arrow(0,w.c)}${w.t}</span>`).join("")}<span>${clock}Período</span><span style="margin-left:auto">${srcTxt()}</span></div>
+    <div class="legend" aria-label="Referencias"><span>⭐ Puntaje</span>${Object.values(WK).map(w=>`<span>${arrow(0,w.c)}${w.t}</span>`).join("")}<span>${clock}Período</span><span>⛅ Nubes</span><span>🌧 Lluvia</span><span style="margin-left:auto">${srcTxt()}</span></div>
   </div>
   <h2 style="margin:10px 0 4px">Tus playas</h2>
   ${favs.length?`<div class="subh">♥ Favoritas</div><div class="waves">${favs.map(F=>waveCard(F)).join("")}</div>`:`<div class="fav-empty" style="margin-top:10px">Tocá ♡ en una playa para tenerla siempre acá</div>`}
