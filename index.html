@@ -983,7 +983,7 @@ function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender
   if(PH_ME===undefined){loadMe().then(()=>{if(location.hash==="#vender")render();});return R(cardH('<p class="mut">Cargando…</p>'));}
   // ---- Alta de fotógrafo
   if(PH_ME===null){const[f,l]=nameParts();
-    return R(cardH(`<h2>Tu perfil de fotógrafo</h2><p class="mut" style="margin-top:6px">Así te van a ver los surfistas.</p>
+    return R(cardH(`<p class="mut" style="font-size:14px;font-weight:600">Paso 1 de 2</p><h2 style="margin-top:4px">Tu perfil de fotógrafo</h2><p class="mut" style="margin-top:6px">Así te van a ver los surfistas.</p>
       <form id="pf">${nameFields(f,l)}
       <label class="fld" for="pfB">Sobre vos <span style="font-weight:400">(opcional)</span><textarea class="inp" id="pfB" maxlength="400" placeholder="Ej: fotos desde el agua en La Pedrera, casi todas las mañanas"></textarea></label>
       <button class="btn block" style="margin-top:16px">Crear mi perfil</button></form>`),
@@ -1004,6 +1004,12 @@ function venderReal(){const R=(html,after)=>({url:"olas.uy/vender",title:"Vender
   const wire=()=>{const $=id=>document.getElementById(id);
     if($("mpC"))$("mpC").onclick=async()=>{$("mpC").disabled=true;const{data,error}=await SB.functions.invoke("mp-connect",{body:{}});if(data?.url)location.href=data.url;else{toast("No se pudo conectar. Probá de nuevo.");$("mpC").disabled=false;}};
 };
+  // ---- Paso 2: sin Mercado Pago conectado no puede seguir (ni panel, ni ventas, ni subir)
+  if(!mpOk)return R(cardH(`<p class="mut" style="font-size:14px;font-weight:600">Paso 2 de 2</p><h2 style="margin-top:4px">Conectá Mercado Pago</h2>
+      <p class="mut" style="margin:8px 0 16px">Lo que vendas te llega directo a tu cuenta. Sin esto no podés subir fotos.</p>
+      <button class="btn mp block" id="mpC">Conectar Mercado Pago</button>
+      <button class="lnk" id="mpI" style="margin-top:12px;background:none;border:0;padding:0;color:var(--mut);font-size:14px">ℹ️ ¿Cómo cobro?</button>`),
+    ()=>{wire();document.getElementById("mpI").onclick=()=>openPayInfo();});
   // ---- Subiendo
   if(UP.busy)return R(cardH(`<h2>Subiendo tus fotos…</h2><div class="prog"><i id="upP"></i></div><p class="mut tab" id="upT">${UP.done} de ${fotos(UP.total)}</p><p class="mut" style="font-size:14px;margin-top:6px">No cierres esta página hasta que termine.</p>`),paintProg);
   // ---- Publicada
