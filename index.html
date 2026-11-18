@@ -344,6 +344,10 @@ section{margin-top:44px}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
 /* ============ Admin ============ */
+.atab{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.atab th{font-size:12px;color:var(--mut);font-weight:600;text-align:right;padding:0 0 6px 8px;white-space:nowrap}
+.atab td{text-align:right;padding:7px 0 7px 8px;border-top:1px solid var(--line)}
+.atab th:first-child,.atab td:first-child{text-align:left;padding-left:0}
 .adm{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .adm .hd{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -488,7 +492,7 @@ function syncFavs(){if(!ME)return;const m=ME.user_metadata?.favs,remote=Array.is
   const next=remote===null||first?[...new Set([...(remote||[]),...FAVS])]:remote,changed=next.length!==FAVS.size||next.some(b=>!FAVS.has(b));
   FAVS=new Set(next);saveFV();if(remote===null||next.length!==remote.length||next.some(b=>!remote.includes(b)))pushFavs();if(changed)render();}
 const saveFV=()=>{try{localStorage.setItem("olasuy-maq-favs",JSON.stringify([...FAVS]));localStorage.setItem("olasuy-maq-views",JSON.stringify(VIEWS));}catch(e){}};
-const seen=b=>{VIEWS[b]=(VIEWS[b]||0)+1;saveFV();};
+const seen=b=>{VIEWS[b]=(VIEWS[b]||0)+1;saveFV();trackBeach(b,"olas");};
 const clkLbl=(d,h)=>d===0&&h===H0?"Ahora":`${DIAS_F(d)} · ${h}:00`;
 const ring=(sc,col,size)=>{const R=26,C=2*Math.PI*R;return `<svg class="ring" viewBox="0 0 62 62" ${size?`style="width:${size}px;height:${size}px"`:""} role="img" aria-label="Puntaje ${m1(sc)} de 10"><circle cx="31" cy="31" r="${R}" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="31" cy="31" r="${R}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C*sc/10} ${C}" transform="rotate(-90 31 31)"/><text x="31" y="38" text-anchor="middle">${m1(sc)}</text></svg>`;};
 const arrow=(wd,col)=>`<svg viewBox="0 0 20 20" aria-hidden="true" style="transform:rotate(${(wd??0)+180}deg)"><path d="M10 1.5 16 17 10 13.6 4 17Z" fill="${col}"/></svg>`;
@@ -612,7 +616,7 @@ document.addEventListener("click",e=>{const el=e.target.closest("[data-beach-go]
 document.addEventListener("click",e=>{const el=e.target.closest("[data-go]");if(!el)return;e.preventDefault();
   if(el.dataset.sess)S.sess=SESSIONS.find(s=>s.id===+el.dataset.sess);
   if(el.dataset.photog)S.photog=ph(el.dataset.photog);
-  if(el.dataset.beach!==undefined){S.beach=el.dataset.beach;S.k=0;S.fk=-1;}
+  if(el.dataset.beach!==undefined){S.beach=el.dataset.beach;S.k=0;S.fk=-1;if(S.beach)trackBeach(S.beach,"fotos");}
   go(el.dataset.go);});
 function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("on"),2400);}
 const av=(p,big)=>`<span class="av${big?" big":""}" style="background:${p.color}" aria-hidden="true">${initials(p.name)}</span>`;
@@ -827,7 +831,7 @@ function paintSimInfo(){const F=FC.find(x=>x.b===simB),[d,hr]=simTime(),f=at(F,d
 function simFrame(ts,still){if(!simB)return;if(!wW){[wW,wH]=sizeCanvas(simv.querySelector("canvas"),wc);}
   if(still){const C=clamp(wCfg.p*0.6,4,8);drawWave(C*0.62*1000,0);return;}
   const dt=Math.min(.05,(ts-(simLast||ts))/1000);simLast=ts;drawWave(ts,dt);simRAF=requestAnimationFrame(simFrame);}
-function openSim(b){simB=b;seen(b);const F=FC.find(x=>x.b===b);
+function openSim(b){simB=b;seen(b);trackBeach(b,"sim");const F=FC.find(x=>x.b===b);
   simv.innerHTML=`<div class="smtop"><button class="ibtn" id="smX" aria-label="Cerrar">✕</button><div style="min-width:0"><b>${b}</b><div class="mut tab" id="smT"></div></div><span style="width:46px"></span></div>
     <canvas id="smC" role="img" aria-label="Animación de la ola junto a una persona de 1,70 m"></canvas>
     <div class="smbody"><div id="smI"></div>
@@ -1254,9 +1258,9 @@ V.fotos=()=>{if(!isReal())return fotosDemo();const rec=S.fk<0,day=rec?null:iso(d
   <p class="ask" style="margin-top:18px">¿Cuándo?</p>
   <div class="rail" id="dayR"><button class="chip" data-k="-1" aria-pressed="${rec}">Recientes</button>${DAYS30.map(k=>`<button class="chip" data-k="${k}" aria-pressed="${k===S.fk}">${dayName(k)}</button>`).join("")}</div>
   <section style="margin-top:22px">${favH}${favH&&body?`<h2 style="margin:26px 0 12px">${S.beach?"":"Recientes"}</h2>`:""}${body}</section>`,
-  after(){document.getElementById("beachR").onclick=e=>{const b=e.target.closest("[data-b]");if(b){S.beach=b.dataset.b;render();}};
+  after(){document.getElementById("beachR").onclick=e=>{const b=e.target.closest("[data-b]");if(b){S.beach=b.dataset.b;if(S.beach)trackBeach(S.beach,"fotos");render();}};
     document.getElementById("dayR").onclick=e=>{const b=e.target.closest("[data-k]");if(b){S.fk=+b.dataset.k;render();}};
-    document.getElementById("pickMap").onclick=()=>openMapPick(b=>{S.beach=b;render();});
+    document.getElementById("pickMap").onclick=()=>openMapPick(b=>{S.beach=b;trackBeach(b,"fotos");render();});
     const q=document.getElementById("bQ");q.oninput=()=>{const t=norm(q.value.trim());let n=0;
       document.querySelectorAll("#beachR .bchip").forEach(c=>{const ok=!t||(c.dataset.n&&c.dataset.n.includes(t));c.hidden=!ok;if(ok&&c.dataset.n)n++;});
       document.getElementById("bQnone").hidden=!t||n>0;document.getElementById("beachR").scrollLeft=0;};
@@ -1417,9 +1421,15 @@ function track(path){if(!CFG.supabaseUrl||!VID||path==="admin"||location.protoco
   fetch(CFG.supabaseUrl+"/rest/v1/rpc/track",{method:"POST",keepalive:true,headers:{"Content-Type":"application/json",apikey:CFG.supabaseAnonKey,Authorization:"Bearer "+(TOKEN||CFG.supabaseAnonKey)},
     body:JSON.stringify({p_vid:VID,p_path:path,p_ref:FIRST_REF,p_mobile:matchMedia("(pointer:coarse)").matches})}).catch(()=>{});FIRST_REF=null;}
 
+const TB_LAST={};
+function trackBeach(b,kind){if(!b||!CFG.supabaseUrl||!VID||location.protocol==="file:"||/^(localhost|127\.)/.test(location.hostname))return;
+  const k=kind+":"+b;if(Date.now()-(TB_LAST[k]||0)<30000)return;TB_LAST[k]=Date.now();
+  fetch(CFG.supabaseUrl+"/rest/v1/rpc/track_beach",{method:"POST",keepalive:true,headers:{"Content-Type":"application/json",apikey:CFG.supabaseAnonKey,Authorization:"Bearer "+(TOKEN||CFG.supabaseAnonKey)},
+    body:JSON.stringify({p_vid:VID,p_beach:b,p_kind:kind})}).catch(()=>{});}
+
 // ============ Panel de administración (#admin) ============
 const ADM={tab:"usuarios",data:undefined,at:0};
-const PATH_LBL={inicio:"Inicio",olas:"Pronósticos",fotos:"Fotos",sesion:"Sesión",fotografo:"Fotógrafo",vender:"Vender",listo:"Compra lista"};
+const PATH_LBL={inicio:"Inicio",olas:"Pronósticos",fotos:"Fotos",sesion:"Sesión de fotos",fotografo:"Fotógrafo",vender:"Vender",listo:"Compra lista"};
 const ago=t=>{if(!t)return"—";const s=(Date.now()-new Date(t))/1000;if(s<60)return"recién";if(s<3600)return`hace ${Math.floor(s/60)} min`;if(s<86400)return`hace ${Math.floor(s/3600)} h`;if(s<86400*30)return`hace ${Math.floor(s/86400)} d`;return fmtD(t);};
 const fmtD=t=>new Date(t).toLocaleDateString("es-UY",{day:"numeric",month:"short",timeZone:"America/Montevideo"});
 const n0=n=>Number(n||0).toLocaleString("es-UY"),pl=(n,a,b)=>`${n0(n)} ${Number(n)===1?a:b}`;
@@ -1438,7 +1448,6 @@ function adminHTML(d){
   const days=d.by_day||[],hours=d.by_hour||[],u=d.users||{},s=d.sales||{},ph=d.photographers||[];
   const dl=x=>new Date(x.d+"T12:00:00").toLocaleDateString("es-UY",{weekday:"short",day:"numeric",month:"numeric"});
   const kpi=(lbl,big,sub)=>`<div class="stat"><span>${lbl}</span><b class="tab">${big}</b>${sub?`<small>${sub}</small>`:""}</div>`;
-  const paths=(d.paths||[]),pmx=Math.max(1,...paths.map(p=>p.views));
   const tabs=`<div class="seg" role="group" aria-label="Listas"><button data-at="usuarios" aria-pressed="${ADM.tab==="usuarios"}">Usuarios</button><button data-at="fotografos" aria-pressed="${ADM.tab==="fotografos"}">Fotógrafos</button><button data-at="actividad" aria-pressed="${ADM.tab==="actividad"}">Actividad</button></div>`;
   let list="";
   if(ADM.tab==="usuarios")list=(u.list||[]).map(x=>`<div><span class="ic">👤</span><span class="mn"><b>${esc(x.name||x.email||"—")}</b><span>${esc(x.email||"")}${x.provider?" · "+(x.provider==="apple"?"Apple":x.provider==="google"?"Google":esc(x.provider)):""}</span><br>${x.photographer?'<span class="badge">📷 Fotógrafo</span>':""}${x.bought?`<span class="badge">🛒 ${x.bought} compra${x.bought>1?"s":""}</span>`:""}</span><span class="rt">alta ${fmtD(x.created_at)}<br>visto ${ago(x.last_seen||x.last_sign_in_at)}</span></div>`).join("")||'<p class="mut">Todavía no hay usuarios.</p>';
@@ -1463,9 +1472,12 @@ function adminHTML(d){
       <div class="card chart"><h3>Registros por día</h3>${barsH(days,x=>x.signups,(x,i)=>i%5===4||i===days.length-1?String(+x.d.slice(8)):"",x=>`<b>${dl(x)}</b><br>${n0(x.signups)} registros`)}</div>
     </div>
     <div class="grid2">
-      <div class="card"><h3>Lo más visto <span class="mut" style="font-weight:600;font-size:14px">· 30 días</span></h3><div class="hbars">${paths.map(p=>`<div><span>${PATH_LBL[p.path]||esc(p.path)}</span><em style="width:${p.views/pmx*100}%"></em><b>${n0(p.views)}</b></div>`).join("")||'<p class="mut">Sin visitas todavía.</p>'}</div></div>
+      <div class="card"><h3>Por sección <span class="mut" style="font-weight:600;font-size:14px">· personas distintas</span></h3>
+        <table class="atab"><thead><tr><th></th><th>Hoy</th><th>7 días</th><th>30 días</th><th>Vistas</th></tr></thead><tbody>${(d.sections||[]).map(x=>`<tr><td>${PATH_LBL[x.path]||esc(x.path)}</td><td>${n0(x.today)}</td><td>${n0(x.week)}</td><td><b>${n0(x.month)}</b></td><td class="mut">${n0(x.views)}</td></tr>`).join("")||'<tr><td colspan="5" class="mut">Sin visitas todavía.</td></tr>'}</tbody></table></div>
       <div class="card"><h3>De dónde vienen</h3><div class="hbars">${(d.refs||[]).map(r=>`<div><span style="overflow:hidden;text-overflow:ellipsis">${esc(r.ref)}</span><em style="width:${r.n/Math.max(1,d.refs[0].n)*100}%"></em><b>${n0(r.n)}</b></div>`).join("")||'<p class="mut">Todos entraron directo (o desde apps que no lo dicen).</p>'}</div></div>
     </div>
+    <div class="card"><h3>Playas más miradas <span class="mut" style="font-weight:600;font-size:14px">· 30 días</span></h3>
+      <table class="atab"><thead><tr><th></th><th title="Veces que abrieron su pronóstico">Pronóstico</th><th title="Personas distintas">Personas</th><th title="Simulación de la ola">▶ Sim.</th><th title="Búsquedas en Fotos">Fotos</th></tr></thead><tbody>${(d.beaches||[]).map(x=>`<tr><td>${esc(x.beach)}</td><td><b>${n0(x.olas)}</b></td><td>${n0(x.people)}</td><td>${n0(x.sim)}</td><td>${n0(x.fotos)}</td></tr>`).join("")||'<tr><td colspan="5" class="mut">Todavía nadie abrió una playa.</td></tr>'}</tbody></table></div>
     <div class="card">${tabs}<div class="alist">${list}</div></div>
     <p class="mut" style="font-size:13px;text-align:center">Actualizado ${ago(ADM.at)} · hora de Uruguay</p>
   </div>`;}
