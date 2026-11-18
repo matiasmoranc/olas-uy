@@ -343,6 +343,39 @@ section{margin-top:44px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
+/* ============ Admin ============ */
+.adm{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.adm .hd{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.kpis .stat{padding:12px 14px}
+.kpis .stat span{font-size:13px;color:var(--mut);font-weight:600}
+.kpis .stat small{display:block;font-size:13px;color:var(--mut)}
+.chart h3,.adm h3{font:800 18px/1.2 var(--display);margin-bottom:10px}
+.bars{position:relative;display:flex;align-items:flex-end;gap:2px;height:150px;border-bottom:1px solid var(--line);padding-top:18px}
+.bars i{flex:1;min-width:0;height:100%;display:flex;align-items:flex-end;cursor:default}
+.bars i b{display:block;width:100%;background:var(--aqua);border-radius:4px 4px 0 0;min-height:1px}
+.bars i:hover b,.bars i.on b{background:var(--aqua-d)}
+.bars .mx{position:absolute;top:0;left:0;right:0;border-top:1px dashed var(--line);font-size:12px;color:var(--mut);line-height:1;padding-top:3px}
+.xax{display:flex;gap:2px;font-size:11px;color:var(--mut);margin-top:4px}
+.xax span{flex:1;min-width:0;text-align:center;white-space:nowrap;overflow:visible}
+.tip{position:fixed;z-index:80;pointer-events:none;background:var(--ink);color:#fff;font-size:13px;line-height:1.35;padding:7px 10px;border-radius:10px;box-shadow:var(--shadow);opacity:0;transition:opacity .12s;max-width:220px}
+.tip.on{opacity:1}
+.hbars{display:flex;flex-direction:column;gap:8px}
+.hbars div{display:grid;grid-template-columns:110px 1fr 46px;align-items:center;gap:10px;font-size:14px}
+.hbars em{height:12px;border-radius:0 4px 4px 0;background:var(--aqua);font-style:normal;min-width:2px}
+.hbars b{text-align:right;font-variant-numeric:tabular-nums}
+.alist{display:flex;flex-direction:column}
+.alist>div{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line);font-size:14px}
+.alist>div:first-child{border-top:0}
+.alist .ic{font-size:20px;line-height:1.2;flex:0 0 26px;text-align:center}
+.alist .mn{flex:1;min-width:0}
+.alist .mn b{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alist .mn span{color:var(--mut);overflow-wrap:anywhere}
+.alist .rt{text-align:right;color:var(--mut);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;background:var(--mist);color:var(--aqua-d);margin:4px 4px 0 0}
+.badge.no{background:#fde8e4;color:#b4432c}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:700px){.grid2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -529,7 +562,7 @@ const app=document.getElementById("app"),V={};
 function orderFromURL(){const q=new URLSearchParams(location.search);return q.get("orden")||q.get("external_reference");}
 if(orderFromURL()&&(!location.hash||location.hash==="#inicio"))history.replaceState(null,"",location.pathname+location.search+"#listo");
 function render(){if(!FC||!FC.length)return; // todavía cargando el pronóstico (boot dibuja cuando llega)
-  const[r,arg]=(location.hash||"#inicio").slice(1).split("=");S.arg=decodeURIComponent(arg||"");const v=V[r]?r:"inicio";const o=V[v]();
+  const[r,arg]=(location.hash||"#inicio").slice(1).split("=");S.arg=decodeURIComponent(arg||"");const v=V[r]?r:"inicio";const o=V[v]();track(v);
   app.innerHTML=o.html;document.getElementById("url").textContent=o.url;document.title=(o.title?o.title+" · ":"")+"Olas UY";
   document.querySelectorAll(".dock a").forEach(a=>a.classList.toggle("on",a.dataset.sec===(o.sec||v)));o.after&&o.after();if(typeof paintCart==="function")paintCart();}
 function show(){if(vw.classList.contains("on"))closeViewer();if(typeof closeSim==="function")closeSim();if(typeof bs!=="undefined"&&bs.classList.contains("on")){bs.classList.remove("on");scrim.classList.remove("on");bsBeach=null;}if(SLIDE){const sp=SLIDE;SLIDE=null;doSlide(sp);return;}if(document.startViewTransition&&!RM.matches)document.startViewTransition(()=>{render();scrollTo(0,0);});else{render();scrollTo(0,0);}}
@@ -537,7 +570,7 @@ addEventListener("hashchange",show);
 // ============ Cambio de sección deslizando (como Instagram) ============
 // Tocar o arrastrar la barra de abajo, o deslizar la pantalla hacia un costado: la pantalla actual se va
 // para un lado y la nueva entra desde el otro. Orden: Inicio · Pronósticos · Fotos · Vender.
-const TABS=["inicio","olas","fotos","vender"],SEC_OF={sesion:"fotos",fotografo:"fotos",listo:"fotos"};
+const TABS=["inicio","olas","fotos","vender"],SEC_OF={sesion:"fotos",fotografo:"fotos",listo:"fotos",admin:"vender"};
 const tabNow=()=>{const r=(location.hash||"#inicio").slice(1).split("=")[0],v=V[r]?r:"inicio";return TABS.indexOf(SEC_OF[v]||v);};
 let SLIDE=null;
 function springBack(){const app=document.getElementById("app");app.style.transition="transform .28s cubic-bezier(.22,.8,.24,1),opacity .28s";app.style.transform="";app.style.opacity="";}
@@ -1349,9 +1382,9 @@ async function signIn(){if(!CFG.apple){oauth("google");return;}
   sheet.classList.add("on");scrim.classList.add("on");}
 async function openAccount(){
   sheet.innerHTML=`<div class="grab"></div><h2>Tus fotos</h2><p class="mut">${ME.email}</p><div id="buys" class="mybuys"><p class="mut">Cargando…</p></div>
-    <button class="btn soft block" id="out">Salir</button>`;
+    ${IS_ADMIN?'<a class="btn soft block" href="#admin" id="toAdm" style="margin-bottom:10px">📊 Admin</a>':""}<button class="btn soft block" id="out">Salir</button>`;
   sheet.classList.add("on");scrim.classList.add("on");
-  document.getElementById("out").onclick=async()=>{await SB.auth.signOut();closeSheet();toast("Saliste de tu cuenta");};
+  const ta=document.getElementById("toAdm");if(ta)ta.onclick=()=>closeSheet();document.getElementById("out").onclick=async()=>{await SB.auth.signOut();closeSheet();toast("Saliste de tu cuenta");};
   const{data,error}=await SB.from("purchases").select("download_token, status, photo:photos(preview_key, taken_at, session:sessions(beach, day))").eq("status","paid").order("paid_at",{ascending:false});
   const el=document.getElementById("buys");
   if(error){el.innerHTML='<p class="mut">No se pudieron cargar tus fotos.</p>';return;}
@@ -1359,19 +1392,92 @@ async function openAccount(){
   const base=(CFG.photosUrl||"").replace(/\/$/,"");
   el.innerHTML=data.map(x=>`<a href="${CFG.supabaseUrl}/functions/v1/download?t=${x.download_token}" target="_blank" rel="noopener" aria-label="Descargar foto de ${x.photo?.session?.beach}"><img src="${base}/${x.photo?.preview_key}" alt="" loading="lazy"><span>⬇ ${x.photo?.session?.beach||""}</span></a>`).join("");}
 acctBtn.onclick=()=>ME?openAccount():signIn();
+function checkAdmin(){IS_ADMIN=false;if(SB&&ME)SB.rpc("is_admin").then(r=>{IS_ADMIN=r.data===true;},()=>{});}
 async function initAccounts(){
   if(!CFG.supabaseUrl||!CFG.supabaseAnonKey)return;
   try{await new Promise((ok,ko)=>{const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";sc.onload=ok;sc.onerror=ko;document.head.appendChild(sc);});
     SB=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey);
-    const{data}=await SB.auth.getSession();ME=data.session?.user||null;paintAcct();syncFavs();
+    const{data}=await SB.auth.getSession();ME=data.session?.user||null;TOKEN=data.session?.access_token||null;checkAdmin();paintAcct();syncFavs();
     // Al entrar: sumar a la cuenta las compras hechas antes solo con este mail
     if(ME)SB.rpc("claim_purchases").then(()=>{},()=>{});
-    SB.auth.onAuthStateChange((ev,ses)=>{const was=ME?.id;ME=ses?.user||null;paintAcct();if(ev==="SIGNED_IN"){SB.rpc("claim_purchases").then(()=>{},()=>{});}
-      if(was!==ME?.id){PH_ME=undefined;syncFavs();if(location.hash==="#vender")render();}});
+    SB.auth.onAuthStateChange((ev,ses)=>{const was=ME?.id;ME=ses?.user||null;TOKEN=ses?.access_token||null;paintAcct();if(ev==="SIGNED_IN"){SB.rpc("claim_purchases").then(()=>{},()=>{});}
+      if(was!==ME?.id){PH_ME=undefined;ADM.data=undefined;checkAdmin();syncFavs();if(location.hash==="#vender")render();}});
     // Vuelta desde Mercado Pago (conexión del fotógrafo)
     const qs=new URLSearchParams(location.search);if(qs.get("mp")){toast(qs.get("mp")==="ok"?"Mercado Pago conectado ✓":"No se pudo conectar Mercado Pago");qs.delete("mp");history.replaceState(null,"",location.pathname+(qs.toString()?"?"+qs:"")+location.hash);}
     render();
   }catch(e){console.warn("No se pudo cargar el inicio de sesión",e);}}
+// ============ Visitas (estadísticas propias, sin datos personales) ============
+// Cada pantalla vista manda: un id al azar guardado en este navegador, la sección, de qué sitio vino
+// (solo la primera vez) y si es celular. Lo lee solo el panel #admin.
+let TOKEN=null,LAST_TRACK="",IS_ADMIN=false;
+const VID=(()=>{try{let v=localStorage.getItem("olasuy-vid");if(!v){v=crypto.randomUUID();localStorage.setItem("olasuy-vid",v);}return v;}catch(e){return crypto.randomUUID?crypto.randomUUID():null;}})();
+let FIRST_REF=(()=>{try{const h=document.referrer?new URL(document.referrer).hostname.replace(/^www\./,""):"";return h&&h!==location.hostname.replace(/^www\./,"")?h:null;}catch(e){return null;}})();
+function track(path){if(!CFG.supabaseUrl||!VID||path==="admin"||location.protocol==="file:"||/^(localhost|127\.)/.test(location.hostname))return;
+  if(path===LAST_TRACK)return;LAST_TRACK=path;
+  fetch(CFG.supabaseUrl+"/rest/v1/rpc/track",{method:"POST",keepalive:true,headers:{"Content-Type":"application/json",apikey:CFG.supabaseAnonKey,Authorization:"Bearer "+(TOKEN||CFG.supabaseAnonKey)},
+    body:JSON.stringify({p_vid:VID,p_path:path,p_ref:FIRST_REF,p_mobile:matchMedia("(pointer:coarse)").matches})}).catch(()=>{});FIRST_REF=null;}
+
+// ============ Panel de administración (#admin) ============
+const ADM={tab:"usuarios",data:undefined,at:0};
+const PATH_LBL={inicio:"Inicio",olas:"Pronósticos",fotos:"Fotos",sesion:"Sesión",fotografo:"Fotógrafo",vender:"Vender",listo:"Compra lista"};
+const ago=t=>{if(!t)return"—";const s=(Date.now()-new Date(t))/1000;if(s<60)return"recién";if(s<3600)return`hace ${Math.floor(s/60)} min`;if(s<86400)return`hace ${Math.floor(s/3600)} h`;if(s<86400*30)return`hace ${Math.floor(s/86400)} d`;return fmtD(t);};
+const fmtD=t=>new Date(t).toLocaleDateString("es-UY",{day:"numeric",month:"short",timeZone:"America/Montevideo"});
+const n0=n=>Number(n||0).toLocaleString("es-UY"),pl=(n,a,b)=>`${n0(n)} ${Number(n)===1?a:b}`;
+async function loadAdmin(){const{data,error}=await SB.rpc("admin_stats");ADM.data=error?null:data;ADM.err=error;ADM.at=Date.now();if(location.hash==="#admin")render();}
+// Barras verticales (una serie). Cada barra tiene su tooltip al pasar el dedo o el mouse.
+function barsH(rows,val,xl,tip){const mx=Math.max(1,...rows.map(val));
+  return `<div class="bars" data-tips>${`<span class="mx">${n0(mx)}</span>`}${rows.map((r,i)=>`<i data-tip="${esc(tip(r))}"><b style="height:${val(r)/mx*100}%"></b></i>`).join("")}</div>
+    <div class="xax" aria-hidden="true">${rows.map((r,i)=>`<span>${xl(r,i)}</span>`).join("")}</div>`;}
+function wireTips(root){let tp=document.querySelector(".tip");if(!tp){tp=document.createElement("div");tp.className="tip";document.body.appendChild(tp);}
+  const hide=()=>{tp.classList.remove("on");root.querySelectorAll(".bars i.on").forEach(x=>x.classList.remove("on"));};
+  const showAt=(el,x,y)=>{hide();el.classList.add("on");tp.innerHTML=el.dataset.tip;tp.classList.add("on");
+    const w=tp.offsetWidth,h=tp.offsetHeight;tp.style.left=Math.max(8,Math.min(innerWidth-w-8,x-w/2))+"px";tp.style.top=Math.max(8,y-h-14)+"px";};
+  root.querySelectorAll("[data-tips] i").forEach(el=>{el.addEventListener("pointermove",e=>showAt(el,e.clientX,el.getBoundingClientRect().top+18));el.addEventListener("pointerleave",hide);});
+  addEventListener("scroll",hide,{passive:true,once:true});}
+function adminHTML(d){
+  const days=d.by_day||[],hours=d.by_hour||[],u=d.users||{},s=d.sales||{},ph=d.photographers||[];
+  const dl=x=>new Date(x.d+"T12:00:00").toLocaleDateString("es-UY",{weekday:"short",day:"numeric",month:"numeric"});
+  const kpi=(lbl,big,sub)=>`<div class="stat"><span>${lbl}</span><b class="tab">${big}</b>${sub?`<small>${sub}</small>`:""}</div>`;
+  const paths=(d.paths||[]),pmx=Math.max(1,...paths.map(p=>p.views));
+  const tabs=`<div class="seg" role="group" aria-label="Listas"><button data-at="usuarios" aria-pressed="${ADM.tab==="usuarios"}">Usuarios</button><button data-at="fotografos" aria-pressed="${ADM.tab==="fotografos"}">Fotógrafos</button><button data-at="actividad" aria-pressed="${ADM.tab==="actividad"}">Actividad</button></div>`;
+  let list="";
+  if(ADM.tab==="usuarios")list=(u.list||[]).map(x=>`<div><span class="ic">👤</span><span class="mn"><b>${esc(x.name||x.email||"—")}</b><span>${esc(x.email||"")}${x.provider?" · "+(x.provider==="apple"?"Apple":x.provider==="google"?"Google":esc(x.provider)):""}</span><br>${x.photographer?'<span class="badge">📷 Fotógrafo</span>':""}${x.bought?`<span class="badge">🛒 ${x.bought} compra${x.bought>1?"s":""}</span>`:""}</span><span class="rt">alta ${fmtD(x.created_at)}<br>visto ${ago(x.last_seen||x.last_sign_in_at)}</span></div>`).join("")||'<p class="mut">Todavía no hay usuarios.</p>';
+  if(ADM.tab==="fotografos")list=ph.map(x=>`<div><span class="ic">📷</span><span class="mn"><b><a href="#fotografo=${encodeURIComponent(x.slug)}" style="color:inherit">${esc(x.name)}</a></b><span>${pl(x.published,"sesión","sesiones")} · ${pl(x.photos,"foto","fotos")} · ${pl(x.sold,"vendida","vendidas")} · ${money(x.gross)}</span><br><span class="badge${x.mp_connected?"":" no"}">${x.mp_connected?"✓ Mercado Pago":"✗ Sin Mercado Pago"}</span></span><span class="rt">alta ${fmtD(x.created_at)}<br>${x.last_upload?"subió "+ago(x.last_upload):"sin subir"}</span></div>`).join("")||'<p class="mut">Todavía no hay fotógrafos.</p>';
+  if(ADM.tab==="actividad"){const IC={signup:"👋",photographer:"📷",session:"⬆️",sale:"💰"},TX={signup:"se registró",photographer:"se anotó como fotógrafo",session:"publicó una sesión",sale:"vendió"};
+    list=(d.activity||[]).map(x=>`<div><span class="ic">${IC[x.k]||"•"}</span><span class="mn"><b>${esc(x.who||"—")}</b><span>${TX[x.k]||x.k}${x.what?" · "+esc(x.what):""}</span></span><span class="rt">${ago(x.at)}</span></div>`).join("")||'<p class="mut">Sin actividad todavía.</p>';}
+  return `<div class="adm">
+    <div class="hd"><h2>Admin</h2><button class="btn soft" id="admR" style="padding:10px 16px">↻ Actualizar</button></div>
+    <div class="kpis">
+      ${kpi("En línea ahora",n0(d.online),"últimos 5 min")}
+      ${kpi("Hoy",n0(d.today?.visitors),`visitantes · ${n0(d.today?.views)} vistas`)}
+      ${kpi("7 días",n0(d.week?.visitors),`visitantes · ${n0(d.week?.views)} vistas`)}
+      ${kpi("30 días",n0(d.month?.visitors),`visitantes · ${d.mobile??0}% celular`)}
+      ${kpi("Usuarios",n0(u.total),`+${n0(u.week)} esta semana · ${n0(u.active_week)} activos`)}
+      ${kpi("Fotógrafos",n0(ph.length),`${n0(ph.filter(x=>x.mp_connected).length)} con Mercado Pago`)}
+      ${kpi("Fotos a la venta",n0(d.content?.photos),pl(d.content?.sessions,"sesión","sesiones"))}
+      ${kpi("Ventas",money(s.gross),`${pl(s.photos,"foto","fotos")} · Olas UY ${money(s.fee)}`)}
+    </div>
+    <div class="card chart"><h3>Visitantes por día</h3>${barsH(days,x=>x.visitors,(x,i)=>i%5===4||i===days.length-1?String(+x.d.slice(8)):"",x=>`<b>${dl(x)}</b><br>${n0(x.visitors)} visitantes · ${n0(x.views)} vistas<br>${n0(x.signups)} registros`)}</div>
+    <div class="grid2">
+      <div class="card chart"><h3>Por hora <span class="mut" style="font-weight:600;font-size:14px">· últimos 7 días</span></h3>${barsH(hours,x=>x.views,(x,i)=>i%6===0?x.h+"h":"",x=>`<b>${x.h}:00–${x.h}:59</b><br>${n0(x.views)} vistas en 7 días<br>${n0(x.today)} hoy`)}</div>
+      <div class="card chart"><h3>Registros por día</h3>${barsH(days,x=>x.signups,(x,i)=>i%5===4||i===days.length-1?String(+x.d.slice(8)):"",x=>`<b>${dl(x)}</b><br>${n0(x.signups)} registros`)}</div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Lo más visto <span class="mut" style="font-weight:600;font-size:14px">· 30 días</span></h3><div class="hbars">${paths.map(p=>`<div><span>${PATH_LBL[p.path]||esc(p.path)}</span><em style="width:${p.views/pmx*100}%"></em><b>${n0(p.views)}</b></div>`).join("")||'<p class="mut">Sin visitas todavía.</p>'}</div></div>
+      <div class="card"><h3>De dónde vienen</h3><div class="hbars">${(d.refs||[]).map(r=>`<div><span style="overflow:hidden;text-overflow:ellipsis">${esc(r.ref)}</span><em style="width:${r.n/Math.max(1,d.refs[0].n)*100}%"></em><b>${n0(r.n)}</b></div>`).join("")||'<p class="mut">Todos entraron directo (o desde apps que no lo dicen).</p>'}</div></div>
+    </div>
+    <div class="card">${tabs}<div class="alist">${list}</div></div>
+    <p class="mut" style="font-size:13px;text-align:center">Actualizado ${ago(ADM.at)} · hora de Uruguay</p>
+  </div>`;}
+V.admin=()=>{const R=html=>({url:"olas.uy/admin",title:"Admin",sec:"vender",html,after:()=>{const r=document.getElementById("app");wireTips(r);
+    const rb=document.getElementById("admR");if(rb)rb.onclick=()=>{rb.disabled=true;loadAdmin();};
+    r.querySelectorAll("[data-at]").forEach(b=>b.onclick=()=>{ADM.tab=b.dataset.at;render();});}});
+  if(!CFG.supabaseUrl)return R('<div class="card" style="max-width:640px;margin:0 auto"><p class="mut">Sin servidor configurado.</p></div>');
+  if(!SB)return R('<div class="card" style="max-width:640px;margin:0 auto"><p class="mut">Cargando…</p></div>');
+  if(!ME)return R(`<div class="card" style="max-width:640px;margin:0 auto"><h2>Admin</h2><p class="mut" style="margin:8px 0 16px">Entrá con tu cuenta de administrador.</p><div style="display:flex;flex-direction:column;gap:10px">${loginButtons()}</div></div>`);
+  if(ADM.data===undefined){if(!ADM.loading){ADM.loading=true;loadAdmin().finally(()=>ADM.loading=false);}return R('<div class="card" style="max-width:640px;margin:0 auto"><p class="mut">Cargando…</p></div>');}
+  if(!ADM.data)return R(`<div class="card" style="max-width:640px;margin:0 auto"><h2>Sin acceso</h2><p class="mut" style="margin-top:8px">${ADM.err?.code==="42501"?"Esta cuenta no es administradora.":"No se pudieron cargar los datos. Probá de nuevo."}</p></div>`);
+  return R(adminHTML(ADM.data));};
 boot();initAccounts();
 </script>
 </body>

@@ -4,6 +4,7 @@
 # y, para las funciones: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_PUBLIC_URL,
 #   MP_CLIENT_ID, MP_CLIENT_SECRET, MP_STATE_SECRET, MP_WEBHOOK_SECRET (opcional),
 #   RESEND_API_KEY y EMAIL_FROM (opcionales: mail al comprador con el link de descarga)
+#   ADMIN_EMAILS (mails que pueden entrar al panel #admin, separados por coma)
 # Si todavía no están cargados, el trabajo termina sin hacer nada (no falla).
 name: Servidor (Supabase)
 
@@ -59,6 +60,30 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: supabase db push --remote --yes --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Administradores del panel (#admin)
+        if: steps.check.outputs.ready == 'true'
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+        run: |
+          if [ -z "$ADMIN_EMAILS" ]; then echo "Sin ADMIN_EMAILS: no se cambian los administradores."; exit 0; fi
+          node - <<'JS'
+          const emails = process.env.ADMIN_EMAILS.split(/[,\s]+/).map((e) => e.trim().toLowerCase()).filter((e) => /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(e));
+          if (!emails.length) { console.error("ADMIN_EMAILS no tiene mails válidos"); process.exit(1); }
+          const q = `begin; delete from public.admins; insert into public.admins(email) values ${emails.map((e) => `('${e}')`).join(",")}; commit;`;
+          (async () => {
+            const r = await fetch(`https://api.supabase.com/v1/projects/${process.env.SUPABASE_PROJECT_REF}/database/query`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${process.env.SUPABASE_ACCESS_TOKEN}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ query: q }),
+            });
+            if (!r.ok) { console.error("Supabase respondió", r.status, await r.text()); process.exit(1); }
+            console.log(`Listo: ${emails.length} administrador(es).`);
+          })();
+          JS
 
       - name: Claves de las funciones
         if: steps.check.outputs.ready == 'true'
