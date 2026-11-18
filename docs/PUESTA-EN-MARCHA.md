@@ -112,3 +112,11 @@ Cuando se confirma un pago, el servidor le manda al comprador un mail con sus fo
 5. *API Keys → Create API key*: nombre `olas-uy`, permiso **Sending access**, dominio `olas.uy`. Copiá la clave (empieza con `re_`). (Secreta)
 6. En **GitHub → Settings → Secrets → Actions** creá `RESEND_API_KEY` con esa clave. (Opcional: `EMAIL_FROM` si querés otro remitente; por defecto es `Olas UY <fotos@olas.uy>`.)
 7. Corré **Actions → Servidor (Supabase) → Run workflow** para cargar la clave.
+
+## 9. Panel de administración (olas.uy/#admin) · 2 min
+
+Muestra visitas por día y por hora, usuarios registrados, fotógrafos, ventas y la actividad reciente. Solo entran los mails que cargues acá.
+
+1. En **GitHub → Settings → Secrets → Actions** creá `ADMIN_EMAILS` con tu mail (el de la cuenta con la que entrás a Olas UY). Si son varios, separalos con coma.
+2. Corré **Actions → Servidor (Supabase) → Run workflow**.
+3. Entrá a **olas.uy/#admin** (o tocá tu inicial arriba a la derecha → **📊 Admin**).
