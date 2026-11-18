@@ -22,14 +22,14 @@ concurrency:
 jobs:
   pages:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Generar páginas
-        run: node tools/seo.mjs
+        run: node --dns-result-order=ipv4first tools/seo.mjs
       - name: Publicar si cambiaron
         run: |
           git add pronostico fotos sitemap.xml robots.txt
