@@ -52,10 +52,10 @@ const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
 // ---------- Pronóstico (Open-Meteo, igual que el sitio) ----------
-async function getJSON(u) {
+async function getJSON(u) { // reintenta hasta 7 veces (≈3 min): a veces la conexión desde GitHub tarda
   for (let k = 0; ; k++) {
-    try { const r = await fetch(u); if (!r.ok) throw new Error(String(r.status)); return await r.json(); }
-    catch (e) { if (k >= 3) throw e; await new Promise((ok) => setTimeout(ok, 2000 * (k + 1))); }
+    try { const r = await fetch(u, { signal: AbortSignal.timeout(45000) }); if (!r.ok) throw new Error(String(r.status)); return await r.json(); }
+    catch (e) { if (k >= 6) throw e; console.log(`Reintento ${k + 1} (${new URL(u).host}): ${e.cause?.code || e.message}`); await new Promise((ok) => setTimeout(ok, 5000 * (k + 1))); }
   }
 }
 async function loadForecast() {
