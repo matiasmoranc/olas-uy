@@ -82,6 +82,16 @@ jobs:
             });
             if (!r.ok) { console.error("Supabase respondió", r.status, await r.text()); process.exit(1); }
             console.log(`Listo: ${emails.length} administrador(es).`);
+            // Chequeo sin mostrar mails (los logs son públicos)
+            const chk = `select (select count(*) from public.admins) as admins,
+              (select count(*) from public.admins a where exists (select 1 from auth.users u where lower(u.email) = a.email)) as con_cuenta,
+              (select r.rolname || ' bypassrls=' || r.rolbypassrls || ' super=' || r.rolsuper from pg_proc p join pg_roles r on r.oid = p.proowner where p.proname = 'is_admin') as duenio_is_admin`;
+            const c = await fetch(`https://api.supabase.com/v1/projects/${process.env.SUPABASE_PROJECT_REF}/database/query`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${process.env.SUPABASE_ACCESS_TOKEN}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ query: chk }),
+            });
+            console.log("Chequeo:", c.status, await c.text());
           })();
           JS
 
