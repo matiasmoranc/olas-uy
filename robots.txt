@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /maqueta/
+
+Sitemap: https://olas.uy/sitemap.xml
